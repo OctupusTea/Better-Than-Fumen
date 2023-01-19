@@ -102,9 +102,9 @@ class MinoField(Canvas):
 
     def __on_mousewheel(self, event):
         if event.delta < 0:
-            self.__prev_mino()
+            self.__prev_mino(event)
         else:
-            self.__next_mino()
+            self.__next_mino(event)
 
     def __check_lineclear(self, y):
         return all(mino != 0 for mino in __field[0:-1][y])
