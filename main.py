@@ -75,6 +75,7 @@ class MinoField(Canvas):
         self.bind('<ButtonRelease-1>', self.__draw_reset)
         self.bind('<Button-4>', self.__next_mino)
         self.bind('<Button-5>', self.__prev_mino)
+        self.bind('<MouseWheel>', self.__on_mousewheel)
 
     def __on_b1(self, event):
         x = (event.x-1) // MINO_SIZE
@@ -98,6 +99,12 @@ class MinoField(Canvas):
 
     def __prev_mino(self, event):
         self.__mino = self.__mino.prev()
+
+    def __on_mousewheel(self, event):
+        if event.delta < 0:
+            self.__prev_mino()
+        else:
+            self.__next_mino()
 
     def __check_lineclear(self, y):
         return all(mino != 0 for mino in __field[0:-1][y])
