@@ -28,6 +28,10 @@ class _MinoName(IntEnum):
     G = 8
 
 class Mino:
+    @staticmethod
+    def count():
+        return len(_MinoName)
+
     def __init__(self, name=_MinoName._, type=_MinoType.NORMAL):
         self._mino = _MinoName(name)
         self._type = _MinoType(type)

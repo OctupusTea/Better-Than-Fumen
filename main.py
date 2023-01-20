@@ -3,6 +3,7 @@ from tkinter import ttk
 from tkinter import *
 
 from minoField import MinoField
+from minoPicker import MinoPicker
 
 MINO_SIZE = 40
 if __name__ == '__main__':
@@ -14,7 +15,7 @@ if __name__ == '__main__':
     main_field.grid(column=2, row=0)
     rise_field = MinoField(frame, mino_size=MINO_SIZE, height=1, width=10)
     rise_field.grid(column=2, row=1)
-    selection_field = MinoField(frame, mino_size=MINO_SIZE*2, height=9, width=1)
+    selection_field = MinoPicker(frame, mino_size=MINO_SIZE)
     selection_field.grid(column=1, row=0, sticky=(N))
 
     root.mainloop()

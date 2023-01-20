@@ -34,8 +34,8 @@ class MinoField(Canvas):
         self.bind('<ButtonPress-1>', self._on_b1)
         self.bind('<B1-Motion>', self._on_b1)
         self.bind('<ButtonRelease-1>', self._draw_reset)
-        self.bind('<Button-4>', self.next_mino)
-        self.bind('<Button-5>', self.prev_mino)
+        self.bind('<Button-5>', self.next_mino)
+        self.bind('<Button-4>', self.prev_mino)
         self.bind('<MouseWheel>', self._on_mousewheel)
 
     def _on_b1(self, event):
