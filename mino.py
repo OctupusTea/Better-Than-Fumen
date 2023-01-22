@@ -32,34 +32,47 @@ class Mino:
     def count():
         return len(_MinoName)
 
+    @staticmethod
+    def copy(mino):
+        return Mino(mino._name, mino._type)
+
     def __init__(self, name=_MinoName._, type=_MinoType.NORMAL):
-        self._mino = _MinoName(name)
+        self._name = _MinoName(name)
         self._type = _MinoType(type)
 
-    def type(self):
-        return self._type.value
+    def set_mino(self, mino):
+        self._name = mino._name
+        self._type = mino._type
 
-    def name(self):
-        return self._mino.name
+    def type(self, type=None):
+        if type is None:
+            return self._type.value
+        else:
+            self._type = _MinoType(type)
 
-    def value(self):
-        return self._mino.value
+    def name(self, name=None):
+        if name is None:
+            return self._name.name
+        else:
+            self._name = _MinoName(name)
+
+    def value(self, value=None):
+        if value is None:
+            return self._name.value
+        else:
+            self._name = _MinoName(value)
 
     def color(self):
-        return _MinoColor(self._mino.value).name
+        return _MinoColor(self._name.value).name
 
     def is_empty(self):
-        return self._mino.value == 0
+        return self._name.value == 0
 
-    def next(self):
-        return Mino((self._mino + 1) % len(_MinoName), self._type)
+    def to_next(self):
+        self._name = _MinoName((self._name + 1) % len(_MinoName))
+        return self
 
-    def prev(self):
-        return Mino((self._mino - 1) % len(_MinoName), self._type)
-
-    def lineclear(self):
-        self._type = _MinoType.LINECLEAR
-
-    def unclear(self):
-        self._type = _MinoType.NORMAL
+    def to_prev(self):
+        self._name = _MinoName((self._name - 1) % len(_MinoName))
+        return self
 
