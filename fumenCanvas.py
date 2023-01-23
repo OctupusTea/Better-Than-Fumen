@@ -1,3 +1,4 @@
+import math
 from tkinter import ttk
 from tkinter import *
 
@@ -13,6 +14,7 @@ class _MinoField(Canvas):
         self._selected_mino = selected_mino
         self._line_width = line_width
         self._field=[[Mino()for y in range(height)] for x in range(width)]
+        self._rects=[[None for y in range(height)] for x in range(width)]
         # initial mino grid painting
         for x in range(width):
             for y in range(height):
@@ -33,11 +35,22 @@ class _MinoField(Canvas):
         if self._is_inside(x, y):
             # if [mino] is not '_' nor 'G', add modification to the rendered color
             color = mino.color() if mino.name() in ['_', 'G'] else mino.color() + str(mino.type())
-            super().create_rectangle(
+            if self._rects[x][y] is not None:
+                super().delete(self._rects[x][y])
+            self._rects[x][y] = super().create_rectangle(
                     x*self._mino_size, y*self._mino_size,
                     (x+1)*self._mino_size, (y+1)*self._mino_size,
                     fill=color, outline=('white' if selected else 'gray25'), width=self._line_width
             )
+
+    def resize(self, mino_size):
+        if self._mino_size != mino_size:
+            self._mino_size = mino_size
+            super().delete('all')
+            super().config(height=self._height*mino_size+1, width=self._width*mino_size+1)
+            for x in range(self._width):
+                for y in range(self._height):
+                    self._draw_mino(x, y, self._field[x][y])
 
 # mino sketch board, for both normal and rising Fumen frames
 class _MinoCanvas(_MinoField):
@@ -78,7 +91,8 @@ class _MinoPicker(_MinoField):
         self._previous_mino = Mino.copy(self._selected_mino)
         # pre-draw the mino color on the picker
         for y in range(Mino.count()):
-            self._draw_mino(0, y, Mino(y))
+            self._field[0][y] = Mino(y)
+            self._draw_mino(0, y, self._field[0][y])
 
         self.bind('<ButtonPress-1>', self._on_b1)
 
@@ -149,4 +163,9 @@ class FumenCanvas(Frame):
         self._selected_mino.to_next()
 
     def _on_resize(self, event):
-        pass
+        max_width = math.floor((event.width - 14) / 11.5)
+        max_height = (event.height - 14) // 21
+        self._mino_size = min(max_width, max_height)
+        self._main_canvas.resize(self._mino_size)
+        self._rise_canvas.resize(self._mino_size)
+        self._pick_canvas.resize(self._mino_size*1.5)
