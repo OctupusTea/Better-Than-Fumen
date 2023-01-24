@@ -76,3 +76,53 @@ class Mino:
         self._name = _MinoName((self._name - 1) % len(_MinoName))
         return self
 
+    def lineclear(self):
+        if self._type is not _MinoType.PLACEMENT:
+            self._type = _MinoType.LINECLEAR
+
+    def unclear(self):
+        if self._type is not _MinoType.PLACEMENT:
+            self._type = _MinoType.NORMAL
+
+    def toggle_lineclear(self):
+        if self._type is _MinoType.NORMAL:
+            self._type = _MinoType.LINECLEAR
+        elif self._type is _MinoType.LINECLEAR:
+            self._type = _MinoType.NORMAL
+
+class PlacementTetromino:
+    TETROMINO_SHAPE = {
+        'I': [
+            {(-1, 0), (0, 0), (1, 0), (2, 0)},
+            {(0, -1), (0, 0), (0, 1), (0, 2)},
+        ],
+        'L': [
+            {(-1, 0), (0, 0), (1, 0), (1, -1)},
+            {(0, -1), (0, 0), (0, 1), (1, 1)},
+            {(-1, 1), (-1, 0), (0, 0), (1, 0)},
+            {(-1, -1), (0, -1), (0, 0), (0, 1)}
+        ],
+        'O': [
+            {(0, -1), (0, 0), (1, -1), (1, 0)}
+        ],
+        'Z': [
+            {(-1, -1), (0, -1), (0, 0), (1, 0)},
+            {(1, -1), (1, 0), (0, 0), (0, 1)}
+        ],
+        'T': [
+            {(-1, 0), (0, 0), (1, 0), (0, -1)},
+            {(0, -1), (0, 0), (0, 1), (1, 0)},
+            {(-1, 0), (0, 0), (1, 0), (0, 1)},
+            {(0, -1), (0, 0), (0, 1), (-1, 0)}
+        ],
+        'J': [
+            {(-1, -1), (-1, 0), (0, 0), (1, 0)},
+            {(1, -1), (0, -1), (0, 0), (0, 1)},
+            {(-1, 0), (0, 0), (1, 0), (1, 1)},
+            {(0, -1), (0, 0), (0, 1), (-1, 1)}
+        ],
+        'S': [
+            {(-1, 0), (0, 0), (0, -1), (1, -1)},
+            {(0, -1), (0, 0), (1, 0), (1, 1)}
+        ]
+    }

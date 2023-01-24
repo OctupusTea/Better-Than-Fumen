@@ -2,7 +2,7 @@ import math
 from tkinter import ttk
 from tkinter import *
 
-from mino import Mino
+from mino import *
 
 # Base class for _MinoPicker and _MinoCanvas
 class _MinoField(Canvas):
@@ -13,7 +13,9 @@ class _MinoField(Canvas):
         self._mino_size = mino_size
         self._selected_mino = selected_mino
         self._line_width = line_width
+        # internal mino state
         self._field=[[Mino()for y in range(height)] for x in range(width)]
+        # canvas rectangles for later deletion
         self._rects=[[None for y in range(height)] for x in range(width)]
         # initial mino grid painting
         for x in range(width):
@@ -33,8 +35,13 @@ class _MinoField(Canvas):
     # draw [mino] on position [x] [y] of the field, with/without selected highlight (for _MinoPicker)
     def _draw_mino(self, x, y, mino, selected=False):
         if self._is_inside(x, y):
-            # if [mino] is not '_' nor 'G', add modification to the rendered color
-            color = mino.color() if mino.name() in ['_', 'G'] else mino.color() + str(mino.type())
+            # if [mino] is not '_', add modification to the rendered color
+            color = mino.color()
+            if mino.name() == 'G':
+                color += str(125-mino.type()*25)
+            elif mino.name() != '_':
+                color += str(mino.type())
+            # if the position is already occupied, delete the previous rectangle
             if self._rects[x][y] is not None:
                 super().delete(self._rects[x][y])
             self._rects[x][y] = super().create_rectangle(
@@ -44,9 +51,9 @@ class _MinoField(Canvas):
             )
 
     def resize(self, mino_size):
+        # re-render only if the size actually changes
         if self._mino_size != mino_size:
             self._mino_size = mino_size
-            super().delete('all')
             super().config(height=self._height*mino_size+1, width=self._width*mino_size+1)
             for x in range(self._width):
                 for y in range(self._height):
@@ -57,6 +64,7 @@ class _MinoCanvas(_MinoField):
     def __init__(self, parent, mino_size, height, width, selected_mino):
         super().__init__(parent, mino_size, height, width, selected_mino)
         self._drawing_mino = None
+        self._lineclear = [False for y in range(height)]
 
         self.bind('<ButtonPress-1>', self._on_b1)
         self.bind('<B1-Motion>', self._on_b1)
@@ -73,8 +81,14 @@ class _MinoCanvas(_MinoField):
                 else:
                     self._drawing_mino = Mino.copy(self._selected_mino)
             if self._field[x][y].value() != self._drawing_mino.value():
-                self._field[x][y].set_mino(self._drawing_mino)
-                self._draw_mino(x, y, self._drawing_mino)
+                self._field[x][y].value(self._drawing_mino.value())
+                lineclear = self._check_lineclear(y)
+                if lineclear != 0:
+                    for x in range(self._width):
+                        self._field[x][y].toggle_lineclear()
+                        self._draw_mino(x, y, self._field[x][y])
+                else:
+                    self._draw_mino(x, y, self._field[x][y])
 
     # reset if the mouse button is released
     def _draw_reset(self, event):
@@ -82,13 +96,19 @@ class _MinoCanvas(_MinoField):
 
     # check for lineclear at row [y]
     def _check_lineclear(self, y):
-        return all(mino != 0 for mino in _field[0:-1][y])
+        lineclear = all(not column[y].is_empty() for column in self._field)
+        if lineclear != self._lineclear[y]:
+            self._lineclear[y] = lineclear
+            return 1 if lineclear else -1
+        else:
+            return 0
 
 # mino picker
 class _MinoPicker(_MinoField):
     def __init__(self, parent, mino_size, selected_mino):
         super().__init__(parent, mino_size, Mino.count(), 1, selected_mino)
         self._previous_mino = Mino.copy(self._selected_mino)
+
         # pre-draw the mino color on the picker
         for y in range(Mino.count()):
             self._field[0][y] = Mino(y)
