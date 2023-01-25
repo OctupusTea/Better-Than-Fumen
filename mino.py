@@ -62,8 +62,16 @@ class Mino:
         else:
             self._name = _MinoName(value)
 
-    def color(self):
-        return _MinoColor(self._name.value).name
+    def fill_color(self):
+        if self._name is _MinoName._:
+            return 'black'
+        elif self._name is _MinoName.G:
+            return 'gray' + str(125 - self._type.value * 25)
+        else:
+            return _MinoColor(self._name.value).name + str(self._type.value)
+
+    def outline_color(self):
+        return 'gray' + str(100 - self._type.value* 25)
 
     def is_empty(self):
         return self._name.value == 0
@@ -95,6 +103,8 @@ class PlacementTetromino:
         'I': [
             {(-1, 0), (0, 0), (1, 0), (2, 0)},
             {(0, -1), (0, 0), (0, 1), (0, 2)},
+            {(-2, 0), (-1, 0), (0, 0), (1, 0)},
+            {(0, -2), (0, -1), (0, 0), (0, 1)}
         ],
         'L': [
             {(-1, 0), (0, 0), (1, 0), (1, -1)},
@@ -103,11 +113,16 @@ class PlacementTetromino:
             {(-1, -1), (0, -1), (0, 0), (0, 1)}
         ],
         'O': [
+            {(0, -1), (0, 0), (1, -1), (1, 0)},
+            {(0, -1), (0, 0), (1, -1), (1, 0)},
+            {(0, -1), (0, 0), (1, -1), (1, 0)},
             {(0, -1), (0, 0), (1, -1), (1, 0)}
         ],
         'Z': [
             {(-1, -1), (0, -1), (0, 0), (1, 0)},
-            {(1, -1), (1, 0), (0, 0), (0, 1)}
+            {(1, -1), (1, 0), (0, 0), (0, 1)},
+            {(-1, 0), (0, 0), (0, 1), (1, 1)},
+            {(0, -1), (0, 0), (-1, 0), (-1, 1)}
         ],
         'T': [
             {(-1, 0), (0, 0), (1, 0), (0, -1)},
@@ -123,6 +138,12 @@ class PlacementTetromino:
         ],
         'S': [
             {(-1, 0), (0, 0), (0, -1), (1, -1)},
-            {(0, -1), (0, 0), (1, 0), (1, 1)}
+            {(0, -1), (0, 0), (1, 0), (1, 1)},
+            {(-1, 1), (0, 1), (0, 0), (1, 0)},
+            {(-1, -1), (-1, 0), (0, 0), (0, 1)}
         ]
     }
+
+    def __init__(self, field, name, rotation):
+        self._mino = Mino(name, _MinoType.PLACEMENT)
+        self._field = field

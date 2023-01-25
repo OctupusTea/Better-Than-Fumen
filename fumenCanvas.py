@@ -6,8 +6,8 @@ from mino import *
 
 # Base class for _MinoPicker and _MinoCanvas
 class _MinoField(Canvas):
-    def __init__(self, parent, mino_size, height, width, selected_mino, line_width=3):
-        super().__init__(parent, height=height*mino_size+1, width=width*mino_size+1)
+    def __init__(self, parent, mino_size, height, width, selected_mino, line_width=2):
+        super().__init__(parent, height=height*mino_size, width=width*mino_size)
         self._height = height
         self._width = width
         self._mino_size = mino_size
@@ -35,26 +35,21 @@ class _MinoField(Canvas):
     # draw [mino] on position [x] [y] of the field, with/without selected highlight (for _MinoPicker)
     def _draw_mino(self, x, y, mino, selected=False):
         if self._is_inside(x, y):
-            # if [mino] is not '_', add modification to the rendered color
-            color = mino.color()
-            if mino.name() == 'G':
-                color += str(125-mino.type()*25)
-            elif mino.name() != '_':
-                color += str(mino.type())
+            outline_color = 'white' if selected else mino.outline_color()
             # if the position is already occupied, delete the previous rectangle
             if self._rects[x][y] is not None:
                 super().delete(self._rects[x][y])
             self._rects[x][y] = super().create_rectangle(
-                    x*self._mino_size, y*self._mino_size,
+                    x*self._mino_size+2, y*self._mino_size+2,
                     (x+1)*self._mino_size, (y+1)*self._mino_size,
-                    fill=color, outline=('white' if selected else 'gray25'), width=self._line_width
+                    fill=mino.fill_color(), outline=outline_color, width=self._line_width
             )
 
     def resize(self, mino_size):
         # re-render only if the size actually changes
         if self._mino_size != mino_size:
             self._mino_size = mino_size
-            super().config(height=self._height*mino_size+1, width=self._width*mino_size+1)
+            super().config(height=self._height*mino_size, width=self._width*mino_size)
             for x in range(self._width):
                 for y in range(self._height):
                     self._draw_mino(x, y, self._field[x][y])
@@ -183,8 +178,8 @@ class FumenCanvas(Frame):
         self._selected_mino.to_next()
 
     def _on_resize(self, event):
-        max_width = math.floor((event.width - 14) / 11.5)
-        max_height = (event.height - 14) // 21
+        max_width = math.floor((event.width - 12) / 11.5)
+        max_height = (event.height - 12) // 21
         self._mino_size = min(max_width, max_height)
         self._main_canvas.resize(self._mino_size)
         self._rise_canvas.resize(self._mino_size)
