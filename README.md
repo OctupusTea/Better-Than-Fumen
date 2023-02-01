@@ -4,7 +4,7 @@ A Python-based Fumen editor aims to enahnce usability and simplify Fumen sharing
 
 ## Current Status
 
-- Fully working canvas with lineclear highlight, placement and ghost preview
+- Fully working canvas with lineclear highlight, placement, placement ghost, and field shifting
 - Scroll or click to change drawing mino
 - Shift-scroll to change placement rotation
 - Click and drag to draw
