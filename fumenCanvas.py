@@ -23,7 +23,7 @@ class _MinoField(Canvas):
         # initial mino grid painting
         for x in range(width):
             for y in range(height):
-                self._draw_mino(x, y, Mino())
+                self._draw_mino(x, y)
 
     # convert event coordinates to mino coordinates
     def _event_coord(self, event):
@@ -49,14 +49,17 @@ class _MinoField(Canvas):
                     fill=mino.fill_color(), outline=outline_color, width=self._line_width
             )
 
+    def redraw(self):
+        for x in range(self._width):
+            for y in range(self._height):
+                self._draw_mino(x, y)
+
     def resize(self, mino_size):
         # re-render only if the size actually changes
         if self._mino_size != mino_size:
             self._mino_size = mino_size
             self.config(height=self._height*mino_size, width=self._width*mino_size)
-            for x in range(self._width):
-                for y in range(self._height):
-                    self._draw_mino(x, y, self._field[x][y])
+            self.redraw()
 
 # mino sketch board, for both normal and rising Fumen frames
 class _MinoCanvas(_MinoField):
@@ -64,8 +67,8 @@ class _MinoCanvas(_MinoField):
         super().__init__(parent, mino_size, height, width, selected_mino)
         self._drawing_mino = None
         self._placement_tetromino = placement_tetromino
-        self._placement_minos = []
-        self._placement_ghosts = []
+        self._placement_coords = []
+        self._ghost_coords = []
         self._lineclear = [False for y in range(height)]
 
         self.bind('<Shift-ButtonPress-1>', self._on_shift_b1)
@@ -105,25 +108,29 @@ class _MinoCanvas(_MinoField):
     def _on_b1_release(self, event):
         self._drawing_mino = None
 
+    # check placement availability, draw placement and ghost
     def _on_shift_b1(self, event):
         x, y = self._event_coord(event)
         if self._is_inside(x, y):
+            self._placement_tetromino.mino_value(self._selected_mino.value())
             placement_tests = self._placement_tetromino.placement_tests(x, y)
             if all(self._is_inside(x, y) and self._field[x][y].is_placeable() for x, y in placement_tests):
                 self._clear_placements()
-                self._clear_ghosts()
-                self._placement_minos = placement_tests
+                self._placement_coords = placement_tests
                 self._project_ghosts()
                 self._draw_placements()
                 self._draw_ghosts()
 
-    # check for lineclear at row [y]
+    # check for lineclear at row [y] and redraw the line
     def _check_lineclear_redraw(self, x, y):
         lineclear = all(not column[y].is_empty() for column in self._field)
         if lineclear != self._lineclear[y]:
             self._lineclear[y] = lineclear
             for x in range(self._width):
-                self._field[x][y].toggle_lineclear()
+                if lineclear:
+                    self._field[x][y].lineclear()
+                else:
+                    self._field[x][y].unclear()
                 self._draw_mino(x, y)
         else:
             self._draw_mino(x, y)
@@ -133,39 +140,88 @@ class _MinoCanvas(_MinoField):
         projection_dy = 0
         for dy in range (1, self._height):
             # if space available: all of the sub-minos are both inside and empty
-            if all(self._is_inside(x, y+dy) and self._field[x][y+dy].is_placeable() for x, y in self._placement_minos):
+            if all(self._is_inside(x, y+dy) and self._field[x][y+dy].is_placeable() for x, y in self._placement_coords):
                 projection_dy = dy
             else:
                 break
-        self._placement_ghosts = [(x, y+projection_dy) for x, y in self._placement_minos]
+        self._ghost_coords = [(x, y+projection_dy) for x, y in self._placement_coords]
 
     def _clear_ghosts(self):
-        for x, y in self._placement_ghosts:
+        for x, y in self._ghost_coords:
             if self._is_inside(x, y) and self._field[x][y].is_ghost():
                 self._field[x][y].reset()
                 self._draw_mino(x, y)
-        self._placement_ghosts.clear()
+        self._ghost_coords.clear()
 
     def _draw_ghosts(self):
-        ghost = Mino(self._selected_mino.value(), 4)
-        for x, y in self._placement_ghosts:
+        ghost = Mino(self._placement_tetromino.mino_value(), 4)
+        for x, y in self._ghost_coords:
             if self._is_inside(x, y) and self._field[x][y].is_empty():
                 self._field[x][y].set_mino(ghost)
                 self._draw_mino(x, y)
 
     def _clear_placements(self):
-        for x, y in self._placement_minos:
+        for x, y in self._placement_coords:
             if self._is_inside(x, y) and self._field[x][y].is_placement():
                 self._field[x][y].reset()
                 self._check_lineclear_redraw(x, y)
-        self._placement_minos.clear()
+        self._placement_coords.clear()
+        self._clear_ghosts()
 
     def _draw_placements(self):
-        placement = Mino(self._selected_mino.value(), 1)
-        for x, y in self._placement_minos:
+        placement = Mino(self._placement_tetromino.mino_value(), 1)
+        for x, y in self._placement_coords:
             if self._is_inside(x, y) and self._field[x][y].is_empty():
                 self._field[x][y].set_mino(placement)
                 self._check_lineclear_redraw(x, y)
+
+    def _shift_placements(self, dx, dy):
+        for i, pos in enumerate(self._placement_coords):
+            self._placement_coords[i] = (pos[0]+dx, pos[1]+dy)
+        for i, pos in enumerate(self._ghost_coords):
+            self._ghost_coords[i] = (pos[0]+dx, pos[1]+dy)
+        if not all(self._is_inside(x, y) for x, y in self._placement_coords):
+            self._clear_placements()
+        self._clear_ghosts()
+        self._project_ghosts()
+        self._draw_ghosts()
+
+    def shift_up(self, amount=1):
+        for y in range(self._height-amount):
+            for x in range(self._width):
+                self._field[x][y] = self._field[x][y+amount]
+        for y in range(self._height-amount, self._height):
+            for x in range(self._width):
+                self._field[x][y] = Mino()
+        self.redraw()
+        self._shift_placements(0, -amount)
+
+    def shift_down(self, amount=1):
+        for y in range(self._height-1, amount-1, -1):
+            for x in range(self._width):
+                self._field[x][y] = self._field[x][y-amount]
+        for y in range(amount):
+            for x in range(self._width):
+                self._field[x][y] = Mino()
+        self.redraw()
+        self._shift_placements(0, amount)
+
+    def shift_left(self, amount=1, border_warp=False):
+        shifted_columns = self._field[:amount] if border_warp else [[Mino() for y in range(self._height)] for x in range(amount)]
+        self._field[:-amount] = self._field[amount:]
+        self._field[-amount:] = shifted_columns
+        self.redraw()
+        self._shift_placements(-amount, 0)
+
+    def shift_right(self, amount=1, border_warp=False):
+        shifted_columns = self._field[-amount:] if border_warp else [[Mino() for y in range(self._height)] for x in range(amount)]
+        self._field[amount:] = self._field[:-amount]
+        self._field[:amount] = shifted_columns
+        self.redraw()
+        self._shift_placements(amount, 0)
+
+    def field_string(self):
+        return ''.join(self._field[x][y].name() for y in range(self._height) for x in range(self._width))
 
 # mino picker
 class _MinoPicker(_MinoField):
@@ -176,7 +232,7 @@ class _MinoPicker(_MinoField):
         # pre-draw the mino color on the picker
         for y in range(Mino.count()):
             self._field[0][y] = Mino(y)
-            self._draw_mino(0, y, self._field[0][y])
+            self._draw_mino(0, y)
 
         self.bind('<ButtonPress-1>', self._on_b1)
 
@@ -194,19 +250,23 @@ class _MinoPicker(_MinoField):
 
 # main Fumen canvas class
 class FumenCanvas(Frame):
-    # shared mino size across all instances
+    # shared values across all instances
     _mino_size = 40
+    _canvas_width = 10
+    _canvas_height = 20
 
     def __init__(self, parent, mino_size):
         super().__init__(parent)
         self._selected_mino = Mino()
-        self._placement_tetromino = PlacementTetromino(mino=self._selected_mino)
+        self._placement_tetromino = PlacementTetromino(mino_value=self._selected_mino.value())
+        self._pages = [None]
+        self._current_page = 0
 
         self._main_frame = ttk.Frame(self, padding=2)
         self._main_frame.grid(column=1, row=0, sticky=(S,W))
         self._main_canvas = _MinoCanvas(
                 self._main_frame,
-                self._mino_size, 20, 10,
+                self._mino_size, self._canvas_height, self._canvas_width,
                 self._selected_mino, self._placement_tetromino
         )
         self._main_canvas.grid()
@@ -215,7 +275,7 @@ class FumenCanvas(Frame):
         self._rise_frame.grid(column=1, row=1, sticky=(N,W))
         self._rise_canvas = _MinoCanvas(
                 self._rise_frame,
-                self._mino_size, 1, 10,
+                self._mino_size, 1, self._canvas_width,
                 self._selected_mino, self._placement_tetromino
         )
         self._rise_canvas.grid()
@@ -239,13 +299,20 @@ class FumenCanvas(Frame):
         )
         self._rotation_label.pack()
 
+        self.bind_all('<Button-3>', self.to_fumen)
         self.bind_all('<Shift-Button-4>', self._on_shift_mousewheel)
         self.bind_all('<Shift-Button-5>', self._on_shift_mousewheel)
         self.bind_all('<Shift-MouseWheel>', self._on_shift_mousewheel)
         self.bind_all('<Button-4>', self._on_mousewheel)
         self.bind_all('<Button-5>', self._on_mousewheel)
         self.bind_all('<MouseWheel>', self._on_mousewheel)
+
         self.bind('<Configure>', self._on_resize)
+
+        self.bind('<Shift-Up>', self._on_shift_up)
+        self.bind('<Shift-Down>', self._on_shift_down)
+        self.bind('<Shift-Left>', self._on_shift_left)
+        self.bind('<Shift-Right>', self._on_shift_right)
 
     def _on_mousewheel(self, event):
         if event.delta > 0 or event.num == 4:
@@ -275,10 +342,34 @@ class FumenCanvas(Frame):
         self._placement_tetromino.to_next_rotation()
 
     def _on_resize(self, event):
-        max_width = math.floor((event.width - 12) / 11.5)
-        max_height = (event.height - 12) // 21
+        max_width = math.floor((event.width - 12) / (self._canvas_width + 1.5))
+        max_height = (event.height - 12) // (self._canvas_height + 1)
         self._mino_size = min(max_width, max_height)
         self._main_canvas.resize(self._mino_size)
         self._rise_canvas.resize(self._mino_size)
         self._pick_canvas.resize(self._mino_size*1.5)
         self._rotation_label.config(font=("TkDefaultFont", self._mino_size//2, NORMAL))
+
+    def _on_shift_up(self, event):
+        self._main_canvas.shift_up()
+
+    def _on_shift_down(self, event):
+        self._main_canvas.shift_down()
+
+    def _on_shift_left(self, event):
+        self._main_canvas.shift_left()
+
+    def _on_shift_right(self, event):
+        self._main_canvas.shift_right()
+
+    def to_fumen(self, event):
+        self._pages[self._current_page] = py_fumen.page.Page(
+            field=py_fumen.field.create_inner_field(
+                py_fumen.field.Field.create(
+                    self._main_canvas.field_string(),
+                    self._rise_canvas.field_string()
+                )
+            ),comment='Test'
+        )
+        print(py_fumen.encode(self._pages))
+

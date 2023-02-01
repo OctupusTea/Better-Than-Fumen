@@ -78,7 +78,7 @@ class Mino:
 
     def outline_color(self):
         if self._type is _MinoType.PLACEMENT:
-            return 'gray75'
+            return 'gray25'
         else:
             return 'gray25'
 
@@ -169,8 +169,8 @@ class PlacementTetromino:
         'G': []
     }
 
-    def __init__(self, mino=Mino(), x=0, y=0, rotation=0):
-        self._mino = mino
+    def __init__(self, mino_value=0, x=0, y=0, rotation=0):
+        self._mino = Mino(mino_value)
         self._x = x
         self._y = y
         self._rotation = rotation
@@ -188,6 +188,12 @@ class PlacementTetromino:
 
     def rotation_strvar(self):
         return self._rotation_strvar
+
+    def mino_value(self, value=None):
+        if value is None:
+            return self._mino.value()
+        else:
+            self._mino.value(value)
 
     def placement(self):
         return self._x, self._y

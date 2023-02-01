@@ -9,10 +9,11 @@ A Python-based Fumen editor aims to enahnce usability and simplify Fumen sharing
 - Shift-scroll to change placement rotation
 - Click and drag to draw
 - Shift-click and shift-drag to draw placement
+- Shift-arrowkeys (up/down/left/right) to shift the whole field around
 
-> The shift-click and shift-scroll part is again an add-on to the common practice (just like scrolling to change mino)
->
-> I'll add at least one placement drawing method similar to either [Fumen for Mobile](https://knewjade.github.io/fumen-for-mobile/) or [Fumen editor](fumen.zui.jp/)
+> The current control methods for placement (shift-click), placement rotation (shift-scroll) and field-shifting (shift-arrowkeys) are an add-on to the common practice
+> 
+> I'll add more control methods similar to those in [Fumen for Mobile](https://knewjade.github.io/fumen-for-mobile/) or [Fumen Editor](fumen.zui.jp/)
 
 ```Python
 # To be continued
