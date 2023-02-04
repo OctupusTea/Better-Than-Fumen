@@ -1,232 +1,188 @@
-from enum import *
+import dataclasses
+from dataclasses import dataclass, field
+from enum import Enum, IntEnum
 from tkinter import StringVar
 
-class _MinoType(Enum):
-    PLACEMENT = 1
-    LINECLEAR = 2
-    NORMAL = 3
-    GHOST = 4
+from common import MinoType, MinoColor, MinoName, Pos
 
-class _MinoColor(IntEnum):
-    black = 0
-    cyan = 1
-    orange = 2
-    yellow = 3
-    red = 4
-    magenta = 5
-    blue = 6
-    green = 7
-    gray = 8
-
-class _MinoName(IntEnum):
-    _ = 0
-    I = 1
-    L = 2
-    O = 3
-    Z = 4
-    T = 5
-    J = 6
-    S = 7
-    G = 8
-
+@dataclass
 class Mino:
+    name: MinoName = field(default=MinoName._)
+    type: MinoType = field(default=MinoType.NORMAL)
+
     @staticmethod
     def count():
-        return len(_MinoName)
-
-    @staticmethod
-    def copy(mino):
-        return Mino(mino._name, mino._type)
-
-    def __init__(self, name=_MinoName._, type=_MinoType.NORMAL):
-        self._name = _MinoName(name)
-        self._type = _MinoType(type)
+        return len(MinoName)
 
     def reset(self):
-        self._name = _MinoName._
-        self._type = _MinoType.NORMAL
+        self.name = MinoName._
+        self.type = MinoType.NORMAL
 
-    def set_mino(self, mino):
-        self._name = mino._name
-        self._type = mino._type
+    def set_mino(self, other):
+        self.name = other.name
+        self.type = other.type
 
-    def type(self, type=None):
-        if type is None:
-            return self._type.value
-        else:
-            self._type = _MinoType(type)
-
-    def name(self, name=None):
-        if name is None:
-            return self._name.name
-        else:
-            self._name = _MinoName(name)
+    def fumen_name(self):
+        return '_' if self.is_placeable() else 'X' if self.name is MinoName.G else self.name.name
 
     def value(self, value=None):
-        if value is None:
-            return self._name.value
-        else:
-            self._name = _MinoName(value)
-
-    def fill_color(self):
-        if self._name is _MinoName._:
-            return 'black'
-        elif self._name is _MinoName.G:
-            return 'gray' + str(125 - self._type.value * 25)
-        else:
-            return _MinoColor(self._name.value).name + str(self._type.value)
-
-    def outline_color(self):
-        if self._type is _MinoType.PLACEMENT:
-            return 'gray25'
-        else:
-            return 'gray25'
+        return self.name.value
 
     def is_empty(self):
-        return self._name is _MinoName._
+        return self.name is MinoName._
 
-    def is_mino(self):
-        return (self._name is not _MinoName._) and (self._name is not _MinoName.G)
+    def is_colored(self):
+        return (self.name is not MinoName._) and (self.name is not MinoName.G)
 
     def is_placement(self):
-        return self._type is _MinoType.PLACEMENT
+        return self.type is MinoType.PLACEMENT
 
     def is_ghost(self):
-        return self._type is _MinoType.GHOST
+        return self.type is MinoType.GHOST
 
     def is_placeable(self):
         return self.is_empty() or self.is_placement() or self.is_ghost()
 
+    def fill_color(self):
+        if self.name is MinoName._:
+            return 'black'
+        elif self.name is MinoName.G:
+            return 'gray' + str(125 - self.type.value * 25)
+        else:
+            return MinoColor(self.name.value).name + str(self.type.value)
+
+    def outline_color(self):
+        if self.is_placement():
+            return 'gray25'
+        else:
+            return 'gray25'
+
     def to_prev(self):
-        self._name = _MinoName((self._name - 1) % len(_MinoName))
+        self.name = MinoName((self.name - 1) % len(MinoName))
         return self
 
     def to_next(self):
-        self._name = _MinoName((self._name + 1) % len(_MinoName))
+        self.name = MinoName((self.name + 1) % len(MinoName))
         return self
 
     def lineclear(self):
-        if self._type is not _MinoType.PLACEMENT:
-            self._type = _MinoType.LINECLEAR
+        if self.type is not MinoType.PLACEMENT:
+            self.type = MinoType.LINECLEAR
 
     def unclear(self):
-        if self._type is not _MinoType.PLACEMENT:
-            self._type = _MinoType.NORMAL
+        if self.type is not MinoType.PLACEMENT:
+            self.type = MinoType.NORMAL
 
-    def toggle_lineclear(self):
-        if self._type is _MinoType.NORMAL:
-            self._type = _MinoType.LINECLEAR
-        elif self._type is _MinoType.LINECLEAR:
-            self._type = _MinoType.NORMAL
-
+@dataclass
 class PlacementTetromino:
     ROTATIONS = ['0', 'R', '2', 'L']
     # ROTATIONS = ['SP', 'CW', '180', 'CCW']
+    FUMEN_ROTATIONS = ['spawn', 'right', 'reverse', 'left']
     SHAPES = {
         '_': [],
         'I': [
-            {(-1, 0), (0, 0), (1, 0), (2, 0)},
-            {(0, -1), (0, 0), (0, 1), (0, 2)},
-            {(-2, 0), (-1, 0), (0, 0), (1, 0)},
-            {(0, -2), (0, -1), (0, 0), (0, 1)}
+            [Pos(-1, 0), Pos(0, 0), Pos(1, 0), Pos(2, 0)],
+            [Pos(0, -1), Pos(0, 0), Pos(0, 1), Pos(0, 2)],
+            # [Pos(-2, 0), Pos(-1, 0), Pos(0, 0), Pos(1, 0)],
+            [Pos(-1, 0), Pos(0, 0), Pos(1, 0), Pos(2, 0)],
+            # [Pos(0, -2), Pos(0, -1), Pos(0, 0), Pos(0, 1)],
+            [Pos(0, -1), Pos(0, 0), Pos(0, 1), Pos(0, 2)],
         ],
         'L': [
-            {(-1, 0), (0, 0), (1, 0), (1, -1)},
-            {(0, -1), (0, 0), (0, 1), (1, 1)},
-            {(-1, 1), (-1, 0), (0, 0), (1, 0)},
-            {(-1, -1), (0, -1), (0, 0), (0, 1)}
+            [Pos(-1, 0), Pos(0, 0), Pos(1, 0), Pos(1, -1)],
+            [Pos(0, -1), Pos(0, 0), Pos(0, 1), Pos(1, 1)],
+            [Pos(-1, 1), Pos(-1, 0), Pos(0, 0), Pos(1, 0)],
+            [Pos(-1, -1), Pos(0, -1), Pos(0, 0), Pos(0, 1)],
         ],
         'O': [
-            {(0, -1), (0, 0), (1, -1), (1, 0)},
-            {(0, -1), (0, 0), (1, -1), (1, 0)},
-            {(0, -1), (0, 0), (1, -1), (1, 0)},
-            {(0, -1), (0, 0), (1, -1), (1, 0)}
+            [Pos(0, 0), Pos(0, 1), Pos(1, 0), Pos(1, 1)],
+            [Pos(0, 0), Pos(0, 1), Pos(1, 0), Pos(1, 1)],
+            [Pos(0, 0), Pos(0, 1), Pos(1, 0), Pos(1, 1)],
+            [Pos(0, 0), Pos(0, 1), Pos(1, 0), Pos(1, 1)],
         ],
         'Z': [
-            {(-1, -1), (0, -1), (0, 0), (1, 0)},
-            {(1, -1), (1, 0), (0, 0), (0, 1)},
-            {(-1, 0), (0, 0), (0, 1), (1, 1)},
-            {(0, -1), (0, 0), (-1, 0), (-1, 1)}
+            # [Pos(-1, -1), Pos(0, -1), Pos(0, 0), Pos(1, 0)],
+            [Pos(-1, 0), Pos(0, 0), Pos(0, 1), Pos(1, 1)],
+            [Pos(1, -1), Pos(1, 0), Pos(0, 0), Pos(0, 1)],
+            [Pos(-1, 0), Pos(0, 0), Pos(0, 1), Pos(1, 1)],
+            [Pos(1, -1), Pos(1, 0), Pos(0, 0), Pos(0, 1)],
+            # [Pos(0, -1), Pos(0, 0), Pos(-1, 0), Pos(-1, 1)],
         ],
         'T': [
-            {(-1, 0), (0, 0), (1, 0), (0, -1)},
-            {(0, -1), (0, 0), (0, 1), (1, 0)},
-            {(-1, 0), (0, 0), (1, 0), (0, 1)},
-            {(0, -1), (0, 0), (0, 1), (-1, 0)}
+            [Pos(-1, 0), Pos(0, 0), Pos(1, 0), Pos(0, -1)],
+            [Pos(0, -1), Pos(0, 0), Pos(0, 1), Pos(1, 0)],
+            [Pos(-1, 0), Pos(0, 0), Pos(1, 0), Pos(0, 1)],
+            [Pos(0, -1), Pos(0, 0), Pos(0, 1), Pos(-1, 0)],
         ],
         'J': [
-            {(-1, -1), (-1, 0), (0, 0), (1, 0)},
-            {(1, -1), (0, -1), (0, 0), (0, 1)},
-            {(-1, 0), (0, 0), (1, 0), (1, 1)},
-            {(0, -1), (0, 0), (0, 1), (-1, 1)}
+            [Pos(-1, -1), Pos(-1, 0), Pos(0, 0), Pos(1, 0)],
+            [Pos(1, -1), Pos(0, -1), Pos(0, 0), Pos(0, 1)],
+            [Pos(-1, 0), Pos(0, 0), Pos(1, 0), Pos(1, 1)],
+            [Pos(0, -1), Pos(0, 0), Pos(0, 1), Pos(-1, 1)],
         ],
         'S': [
-            {(-1, 0), (0, 0), (0, -1), (1, -1)},
-            {(0, -1), (0, 0), (1, 0), (1, 1)},
-            {(-1, 1), (0, 1), (0, 0), (1, 0)},
-            {(-1, -1), (-1, 0), (0, 0), (0, 1)}
+            # [Pos(-1, 0), Pos(0, 0), Pos(0, -1), Pos(1, -1)],
+            [Pos(-1, 1), Pos(0, 1), Pos(0, 0), Pos(1, 0)],
+            # [Pos(0, -1), Pos(0, 0), Pos(1, 0), Pos(1, 1)],
+            [Pos(-1, -1), Pos(-1, 0), Pos(0, 0), Pos(0, 1)],
+            [Pos(-1, 1), Pos(0, 1), Pos(0, 0), Pos(1, 0)],
+            [Pos(-1, -1), Pos(-1, 0), Pos(0, 0), Pos(0, 1)],
         ],
-        'G': []
+        'G': [],
     }
 
-    def __init__(self, mino_value=0, x=0, y=0, rotation=0):
-        self._mino = Mino(mino_value)
-        self._x = x
-        self._y = y
-        self._rotation = rotation
-        self._rotation_strvar = StringVar()
-        self._update_strvar()
+    mino: Mino = field(default=Mino(type=MinoType.PLACEMENT))
+    pos: Pos = field(default_factory=Pos)
+    rotation: int = field(default=0)
+    coords: list = field(default_factory=list)
+    placed_mino: Mino = field(default=Mino(type=MinoType.PLACEMENT))
+    placed_pos: Pos = field(default_factory=Pos)
+    placed_rotation: int = field(default=0)
+    placed_coords: list = field(default_factory=list)
+    rotation_strvar: StringVar = field(default_factory=StringVar)
 
-    def place(self, x, y, rotation=None):
-        self._x = x
-        self._y = y
-        self.rotate(rotation)
+    def __post_init__(self):
+        self.gen_coords()
+        self.update_strvar()
 
-    def _update_strvar(self):
-        if self._rotation_strvar is not None:
-            self._rotation_strvar.set(self.ROTATIONS[self._rotation])
+    def gen_coords(self, pos=None):
+        pos = self.pos if pos is None else pos
+        self.coords = [self.pos+dpos for dpos in self.SHAPES[self.mino.name.name][self.rotation]] if self.mino.is_colored() else []
 
-    def rotation_strvar(self):
-        return self._rotation_strvar
+    def update_strvar(self):
+        self.rotation_strvar.set(self.rotation_name())
 
-    def mino_value(self, value=None):
-        if value is None:
-            return self._mino.value()
-        else:
-            self._mino.value(value)
-
-    def placement(self):
-        return self._x, self._y
-
-    def placement_tests(self, x, y):
-        return [(x+dx, y+dy) for dx, dy in self.SHAPES[self._mino.name()][self._rotation]] if self._mino.is_mino() else []
+    def place(self):
+        self.placed_pos = Pos(*self.pos)
+        self.placed_mino.set_mino(self.mino)
+        self.placed_rotation = self.rotation
+        self.placed_coords = self.coords[:]
 
     def rotate(self, rotation):
-        self._rotation = self._rotation if rotation is None else rotation
-        self._update_strvar()
+        self.rotation = rotation
+        self.update_strvar()
 
-    def rotation(self):
-        return self._rotation
+    def rotation_name(self):
+        return self.ROTATIONS[self.rotation]
 
-    def rotation_str(self):
-        return self.ROTATIONS[self._rotation]
-
-    def to_prev(self):
-        self._mino_to_prev()
+    def to_prev_mino(self):
+        self.mino.to_prev()
         return self
 
-    def to_next(self):
-        self._mino.to_next()
+    def to_next_mino(self):
+        self.mino.to_next()
         return self
 
     def to_prev_rotation(self):
-        self._rotation = (self._rotation - 1) % len(self.ROTATIONS)
-        self._update_strvar()
+        self.rotation = (self.rotation - 1) % len(self.ROTATIONS)
+        self.update_strvar()
         return self
 
     def to_next_rotation(self):
-        self._rotation = (self._rotation + 1) % len(self.ROTATIONS)
-        self._update_strvar()
+        self.rotation = (self.rotation + 1) % len(self.ROTATIONS)
+        self.update_strvar()
         return self
 
+    def to_fumen_operation_args(self):
+        return self.placed_mino.name.name, self.FUMEN_ROTATIONS[self.placed_rotation], self.placed_pos.x, 19-self.placed_pos.y
 
