@@ -23,7 +23,8 @@ class Mino:
         self.type = other.type
 
     def fumen_name(self):
-        return '_' if self.is_placeable() else 'X' if self.name is MinoName.G else self.name.name
+        return '_' if self.is_placeable() else\
+                'X' if self.name is MinoName.G else self.name.name
 
     def value(self, value=None):
         return self.name.value
@@ -75,7 +76,7 @@ class Mino:
 
 @dataclass
 class PlacementTetromino:
-    ROTATIONS = ['0', 'R', '2', 'L']
+    ROTATIONS = ['0', 'R', '2', 'L', 'X']
     # ROTATIONS = ['SP', 'CW', '180', 'CCW']
     FUMEN_ROTATIONS = ['spawn', 'right', 'reverse', 'left']
     SHAPES = {
@@ -135,6 +136,7 @@ class PlacementTetromino:
     pos: Pos = field(default_factory=Pos)
     rotation: int = field(default=0)
     coords: list = field(default_factory=list)
+    placed: bool = field(default=False)
     placed_mino: Mino = field(default=Mino(type=MinoType.PLACEMENT))
     placed_pos: Pos = field(default_factory=Pos)
     placed_rotation: int = field(default=0)
@@ -147,16 +149,23 @@ class PlacementTetromino:
 
     def gen_coords(self, pos=None):
         pos = self.pos if pos is None else pos
-        self.coords = [self.pos+dpos for dpos in self.SHAPES[self.mino.name.name][self.rotation]] if self.mino.is_colored() else []
+        self.coords = [
+                self.pos+dpos for dpos in self.SHAPES[self.mino.name.name][self.rotation]
+        ] if self.mino.is_colored() else []
 
     def update_strvar(self):
         self.rotation_strvar.set(self.rotation_name())
 
     def place(self):
+        self.placed = True
         self.placed_pos = Pos(*self.pos)
         self.placed_mino.set_mino(self.mino)
         self.placed_rotation = self.rotation
         self.placed_coords = self.coords[:]
+
+    def clear(self):
+        self.placed = False
+        self.placed_coords.clear()
 
     def rotate(self, rotation):
         self.rotation = rotation
@@ -184,5 +193,6 @@ class PlacementTetromino:
         return self
 
     def to_fumen_operation_args(self):
-        return self.placed_mino.name.name, self.FUMEN_ROTATIONS[self.placed_rotation], self.placed_pos.x, 19-self.placed_pos.y
+        return (self.placed_mino.name.name, self.FUMEN_ROTATIONS[self.placed_rotation],
+                self.placed_pos.x, 19-self.placed_pos.y)
 
