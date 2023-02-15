@@ -76,7 +76,7 @@ class Mino:
 
 @dataclass
 class PlacementTetromino:
-    ROTATIONS = ['0', 'R', '2', 'L', 'X']
+    ROTATIONS = ['0', 'R', '2', 'L']
     # ROTATIONS = ['SP', 'CW', '180', 'CCW']
     FUMEN_ROTATIONS = ['spawn', 'right', 'reverse', 'left']
     SHAPES = {
@@ -136,6 +136,7 @@ class PlacementTetromino:
     pos: Pos = field(default_factory=Pos)
     rotation: int = field(default=0)
     coords: list = field(default_factory=list)
+    direct_place: bool = field(default=False)
     placed: bool = field(default=False)
     placed_mino: Mino = field(default=Mino(type=MinoType.PLACEMENT))
     placed_pos: Pos = field(default_factory=Pos)
@@ -168,7 +169,7 @@ class PlacementTetromino:
         self.placed_coords.clear()
 
     def rotate(self, rotation):
-        self.rotation = rotation
+        self.rotation = rotation if 0 <= rotation < len(self.ROTATIONS) else 0
         self.update_strvar()
 
     def rotation_name(self):

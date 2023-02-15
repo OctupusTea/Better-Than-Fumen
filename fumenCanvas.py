@@ -42,7 +42,7 @@ class _MinoField(Canvas):
 
     # Draw mino on position x, y of the field,
     # with or without selected highlight (for _MinoPicker)
-    def _draw_mino(self, x, y, mino=None, selected=False):
+    def _paint_mino(self, x, y, mino=None, selected=False):
         if self._is_inside(x, y) and self._field[x][y] is not None:
             mino = self._field[x][y] if mino is None else mino
             outline_color = 'white' if selected else mino.outline_color()
@@ -55,13 +55,13 @@ class _MinoField(Canvas):
                 outline=outline_color,
             )
 
-    def redraw(self):
+    def repaint(self):
         for x in range(self._width):
             for y in range(self._height):
-                self._draw_mino(x, y)
+                self._paint_mino(x, y)
 
     def resize(self, mino_size):
-        # re-render only if the size actually changes
+        # repaint only if the size actually changes
         if self._mino_size != mino_size:
             self._mino_size = mino_size
             self.config(height=self._height*mino_size, width=self._width*mino_size)
@@ -93,16 +93,33 @@ class _MinoCanvas(_MinoField):
         self.bind('<B1-Motion>', self._on_b1)
         self.bind('<ButtonRelease-1>', self._on_b1_release)
 
+    def _on_b1(self, event):
+        x, y = self._event_coords(event)
+        if self._placement_tetromino.direct_place and self._selected_mino.is_colored():
+            self._draw_placement(x, y)
+        else:
+            self._draw_mino(x, y)
+
+    # reset if the mouse button is released
+    def _on_b1_release(self, event):
+        self._drawing_mino = None
+
+    def _on_shift_b1(self, event):
+        x, y = self._event_coords(event)
+        if self._placement_tetromino.direct_place or not self._selected_mino.is_colored():
+            self._draw_mino(x, y)
+        else:
+            self._draw_placement(x, y)
+
     """
     ## _on_b1
     - clicking on mino x, y
         - if it's placement, reset placement
-        - clear ghost and redraw
+        - clear ghost and repaint
         - if field[x][y] is the same as the selected mino,
             set to eraser ('_' mino)
     """
-    def _on_b1(self, event):
-        x, y = self._event_coords(event)
+    def _draw_mino(self, x, y):
         if self._is_inside(x, y):
             if self._field[x][y].is_placement():
                 self._clear_placements()
@@ -117,17 +134,11 @@ class _MinoCanvas(_MinoField):
 
             if self._field[x][y].name is not self._drawing_mino.name:
                 self._field[x][y].name = self._drawing_mino.name
-                self._check_lineclear_redraw(x, y)
-            self._project_ghosts()
-            self._draw_ghosts()
-
-    # reset if the mouse button is released
-    def _on_b1_release(self, event):
-        self._drawing_mino = None
+                self._check_lineclear_repaint(x, y)
+            self._repaint_ghosts() 
 
     # check placement availability, draw placement and ghost
-    def _on_shift_b1(self, event):
-        x, y = self._event_coords(event)
+    def _draw_placement(self, x, y):
         if self._is_inside(x, y):
             self._placement_tetromino.mino.name = self._selected_mino.name
             self._placement_tetromino.pos = Pos(x, y)
@@ -137,13 +148,12 @@ class _MinoCanvas(_MinoField):
                         for px, py in self._placement_tetromino.coords):
                 self._clear_placements()
                 self._placement_tetromino.place()
-                self._project_ghosts()
-                self._draw_placements()
-                self._draw_ghosts()
+                self._paint_placements()
+                self._repaint_ghosts()
 
-    # check for lineclear at row [y] and redraw the line
-    def _check_lineclear_redraw(self, x, y):
-        lineclear = all(not column[y].is_empty() for column in self._field)
+    # check for lineclear at row [y] and repaint the line
+    def _check_lineclear_repaint(self, x, y):
+        lineclear = all(not column[y].is_placeable() for column in self._field)
         if lineclear != self._lineclear[y]:
             self._lineclear[y] = lineclear
             for x in range(self._width):
@@ -151,13 +161,21 @@ class _MinoCanvas(_MinoField):
                     self._field[x][y].lineclear()
                 else:
                     self._field[x][y].unclear()
-                self._draw_mino(x, y)
+                self._paint_mino(x, y)
         else:
-            self._draw_mino(x, y)
+            self._paint_mino(x, y)
 
-    # the loop iterates down, testing if the ghosts-to-be are all inside and empty
-    def _project_ghosts(self):
+    def _clear_ghosts(self):
+        for x, y in self._ghost_coords:
+            if self._is_inside(x, y) and self._field[x][y].is_ghost():
+                self._field[x][y].reset()
+                self._paint_mino(x, y)
+        self._ghost_coords.clear()
+
+    def _repaint_ghosts(self):
+        self._clear_ghosts()
         projection_dy = 0
+        # the loop iterates down, testing if the ghosts-to-be are all inside and empty
         for dy in range (1, self._height):
             # if space available: all of the sub-minos are both inside and empty
             if all(self._is_inside(x, y+dy)
@@ -169,34 +187,26 @@ class _MinoCanvas(_MinoField):
         self._ghost_coords = [Pos(x, y+projection_dy)
                 for x, y in self._placement_tetromino.placed_coords]
 
-    def _clear_ghosts(self):
-        for x, y in self._ghost_coords:
-            if self._is_inside(x, y) and self._field[x][y].is_ghost():
-                self._field[x][y].reset()
-                self._draw_mino(x, y)
-        self._ghost_coords.clear()
-
-    def _draw_ghosts(self):
-        ghost = Mino(self._placement_tetromino.mino.name, MinoType.GHOST)
+        ghost = Mino(self._placement_tetromino.placed_mino.name, MinoType.GHOST)
         for x, y in self._ghost_coords:
             if self._is_inside(x, y) and self._field[x][y].is_empty():
                 self._field[x][y].set_mino(ghost)
-                self._draw_mino(x, y)
+                self._paint_mino(x, y)
 
     def _clear_placements(self):
         for x, y in self._placement_tetromino.placed_coords:
             if self._is_inside(x, y) and self._field[x][y].is_placement():
                 self._field[x][y].reset()
-                self._check_lineclear_redraw(x, y)
+                self._check_lineclear_repaint(x, y)
         self._placement_tetromino.clear()
         self._clear_ghosts()
 
-    def _draw_placements(self):
+    def _paint_placements(self):
         placement = Mino(self._placement_tetromino.mino.name, MinoType.PLACEMENT)
         for x, y in self._placement_tetromino.coords:
-            if self._is_inside(x, y) and self._field[x][y].is_empty():
+            if self._is_inside(x, y) and self._field[x][y].is_placeable():
                 self._field[x][y].set_mino(placement)
-                self._check_lineclear_redraw(x, y)
+                self._check_lineclear_repaint(x, y)
 
     def _shift_placements(self, dx, dy):
         dpos = Pos(dx, dy)
@@ -207,9 +217,7 @@ class _MinoCanvas(_MinoField):
         if not all(self._is_inside(x, y) for x, y
                 in self._placement_tetromino.placed_coords):
             self._clear_placements()
-        self._clear_ghosts()
-        self._project_ghosts()
-        self._draw_ghosts()
+        self._repaint_ghosts()
 
     def shift_up(self, amount=1):
         for y in range(self._height-amount):
@@ -218,7 +226,7 @@ class _MinoCanvas(_MinoField):
         for y in range(self._height-amount, self._height):
             for x in range(self._width):
                 self._field[x][y] = Mino()
-        self.redraw()
+        self.repaint()
         self._shift_placements(0, -amount)
 
     def shift_down(self, amount=1):
@@ -228,7 +236,7 @@ class _MinoCanvas(_MinoField):
         for y in range(amount):
             for x in range(self._width):
                 self._field[x][y] = Mino()
-        self.redraw()
+        self.repaint()
         self._shift_placements(0, amount)
 
     def shift_left(self, amount=1, border_warp=False):
@@ -238,7 +246,7 @@ class _MinoCanvas(_MinoField):
             ]
         self._field[:-amount] = self._field[amount:]
         self._field[-amount:] = shifted_columns
-        self.redraw()
+        self.repaint()
         self._shift_placements(-amount, 0)
 
     def shift_right(self, amount=1, border_warp=False):
@@ -248,7 +256,7 @@ class _MinoCanvas(_MinoField):
             ]
         self._field[amount:] = self._field[:-amount]
         self._field[:amount] = shifted_columns
-        self.redraw()
+        self.repaint()
         self._shift_placements(amount, 0)
 
     def field_string(self):
@@ -267,7 +275,7 @@ class _MinoPicker(_MinoField):
         for y in range(self._height):
             for x in range(self._width):
                 self._field[x][y] = Mino(MinoName(y))
-                self._draw_mino(x, y)
+                self._paint_mino(x, y)
                 if x < self._width - 1:
                     if self._field[x][y].is_colored():
                         self._texts[x][y] = self.create_text(
@@ -291,13 +299,24 @@ class _MinoPicker(_MinoField):
         if self._is_inside(x, y):
             self._placement_tetromino.rotate(x)
             self._selected_mino.name = MinoName(y)
+            self._placement_tetromino.direct_place = (
+                x < self._width - 1 and
+                self._selected_mino.is_colored()
+            )
             self.update_mino()
 
     # un-highlight the previously selected mino and highlight the current one
     def update_mino(self):
-        self._draw_mino(*self._previous_selection, Mino(MinoName(self._previous_selection.y)))
-        self._previous_selection = Pos(self._placement_tetromino.rotation , self._selected_mino.name.value)
-        self._draw_mino(*self._previous_selection, self._selected_mino, True)
+        self._paint_mino(*self._previous_selection)
+        self._paint_mino(4, self._previous_selection.y)
+        self._previous_selection = Pos(
+            self._placement_tetromino.rotation if self._selected_mino.is_colored()\
+                else 4,
+            self._selected_mino.name.value
+        )
+        self._paint_mino(*self._previous_selection, selected=True)
+        if not self._placement_tetromino.direct_place:
+            self._paint_mino(4, self._previous_selection.y, selected=True)
 
     def resize(self, mino_size):
         if super().resize(mino_size):
@@ -383,7 +402,6 @@ class FumenCanvas(ttk.Frame):
         else:
             self._next_mino()
         self._pick_canvas.update_mino()
-        self._placement_tetromino.rotate(0)
 
     def _prev_mino(self):
         self._selected_mino.to_prev()
