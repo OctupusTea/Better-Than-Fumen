@@ -6,12 +6,13 @@ A Python-based Fumen editor aims to enahnce usability and simplify Fumen sharing
 
 - Fully working canvas with lineclear highlight, placement, placement ghost, and field shifting
 - Scroll or click to change drawing mino
-- Shift-scroll to change placement rotation
-- Click and drag to draw
-- Shift-click and shift-drag to draw placement
+- Shift-scroll or click to change placement rotation
+- Click and shift-click to draw mino/placement
+	- If the ONLY minos labelled with rotation symbols are selected, the shifting behaviour inverses
+	- If the empty (black) or the garbage (grey) is selected, only mino drawing is available regardless of shift
 - Shift-arrowkeys (up/down/left/right) to shift the whole field around
 
-> The current control methods for placement (shift-click), placement rotation (shift-scroll) and field-shifting (shift-arrowkeys) are an add-on to the common practice
+> The current control methods of field-shifting (shift-arrowkeys) are an add-on to the common practice
 > 
 > I'll add more control methods similar to those in [Fumen for Mobile](https://knewjade.github.io/fumen-for-mobile/) or [Fumen Editor](fumen.zui.jp/)
 
