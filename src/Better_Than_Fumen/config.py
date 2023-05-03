@@ -9,7 +9,7 @@ class CanvasConfig:
     MINO_SIZE: int = 40
     LINE_WIDTH: int = 2
     PICKER_SIZE: float = 50
-    COLOR: dict = {
+    FILL: dict = {
         Mino._: 'black',
         Mino.I: 'cyan',
         Mino.L: 'orange',
@@ -18,6 +18,16 @@ class CanvasConfig:
         Mino.T: 'magenta',
         Mino.J: 'blue',
         Mino.S: 'green',
+    }
+    HIGHLIGHT: dict = {
+        'placement': '1',
+        'lineclear': '2',
+        'normal': '3',
+        'ghost': '4',
+    }
+    OUTLINE: dict = {
+        'normal': 'gray25',
+        'selected': 'white',
     }
 
 @dataclass
