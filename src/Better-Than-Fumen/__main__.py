@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 from enum import *
 from tkinter import ttk
 from tkinter import *
