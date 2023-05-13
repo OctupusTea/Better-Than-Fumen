@@ -190,13 +190,6 @@ class _FieldCanvas(_BaseMinoCanvas):
             _config.mino_fill(mino, type_), _config.OUTLINE['normal']
         )
 
-    def repaint(self):
-        self._clear_placements()
-        for y in range(self._height):
-            for x in range(self._width):
-                self._paint_mino(x, y, self._field.at(x, y), 'normal')
-            self._check_lineclear_repaint(0, y)
-
     def on_resize(self, mino_size):
         if super().on_resize(mino_size):
             self.coords(
@@ -209,6 +202,7 @@ class _FieldCanvas(_BaseMinoCanvas):
         if self._is_inside_field(x, y):
             if [x, y] in self._placements:
                 self._clear_placements()
+                _CanvasMode.placement = None
             self._clear_ghosts()
             if self._drawing_mino is None:
                 self._drawing_mino = (
@@ -232,6 +226,8 @@ class _FieldCanvas(_BaseMinoCanvas):
             self._placements = _CanvasMode.placement.shape()
             self._paint_placements()
             self._repaint_ghosts()
+        else:
+            _CanvasMode.placement = None
 
     def _check_lineclear_repaint(self, x, y):
         lineclear = all([px, y] in self._placements
@@ -275,7 +271,6 @@ class _FieldCanvas(_BaseMinoCanvas):
 
     def _clear_placements(self):
         placements = self._placements[:]
-        _CanvasMode.placement = None
         self._placements.clear()
         for x, y in placements:
             self._check_lineclear_repaint(x, y)
@@ -286,38 +281,37 @@ class _FieldCanvas(_BaseMinoCanvas):
             if self._field.at(x, y) is Mino._:
                 self._check_lineclear_repaint(x, y)
 
-    def _shift_placements(self, dx, dy):
-        for pos in self._placements:
-            pos[0] += dx
-            pos[1] += dy
-
-        for pos in self._ghosts:
-            pos[0] += dx
-            pos[1] += dy
-
-        if not all(self._is_inside_field(x, y) for x, y in self._placements):
-            self._clear_placements()
-        self._repaint_ghosts()
+    def _shift_repaint(self, dx, dy):
+        self._clear_placements()
+        self._clear_ghosts()
+        for y in range(-Consts.GARBAGE_HEIGHT, Consts.HEIGHT):
+            for x in range(self._width):
+                self._paint_mino(x, y, self._field.at(x, y), 'normal')
+            self._check_lineclear_repaint(0, y)
+        if _CanvasMode.placement:
+            _CanvasMode.placement.shift(dx, dy)
+            if self._field.is_placeable(_CanvasMode.placement):
+                self._placements = _CanvasMode.placement.shape()
+                self._paint_placements()
+                self._repaint_ghosts()
+            else:
+                _CanvasMode.placement = None
 
     def shift_up(self, amount=1):
         self._field.shift_up(amount)
-        self._shift_placements(0, -amount)
-        self.repaint()
+        self._shift_repaint(0, amount)
 
     def shift_down(self, amount=1):
         self._field.shift_down(amount)
-        self._shift_placements(0, amount)
-        self.repaint()
+        self._shift_repaint(0, -amount)
 
     def shift_left(self, amount=1, warp=False):
         self._field.shift_left(amount, warp)
-        self._shift_placements(-amount, 0)
-        self.repaint()
+        self._shift_repaint(-amount, 0)
 
-    def shfit_right(self, amount=1, warp=False):
+    def shift_right(self, amount=1, warp=False):
         self._field.shift_right(amount, warp)
-        self._shift_placements(amount, 0)
-        self.repaint()
+        self._shift_repaint(amount, 0)
 
     def field(self):
         return self._field.copy()
