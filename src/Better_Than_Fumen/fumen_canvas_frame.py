@@ -1,10 +1,12 @@
 # -*- coding: utf-8 -*-
 
+from copy import copy
 from math import floor
 from tkinter import ttk, font, Frame, Canvas
 from tkinter import E, W, S, N
 
 from py_fumen_py import *
+from py_fumen_py.action import Action
 from py_fumen_py.constant import FieldConstants as Consts
 
 from .config import CanvasConfig, KeyConfig
@@ -216,18 +218,11 @@ class _FieldCanvas(_BaseMinoCanvas):
             self._repaint_ghosts()
 
     def _draw_placement(self, x, y):
-        self._clear_placements()
         if _CanvasMode.mino.is_colored():
             _CanvasMode.placement = Operation(
                 _CanvasMode.mino, _CanvasMode.rotation, x, y,
             )
-        if (_CanvasMode.placement
-                and self._field.is_placeable(_CanvasMode.placement)):
-            self._placements = _CanvasMode.placement.shape()
-            self._paint_placements()
-            self._repaint_ghosts()
-        else:
-            _CanvasMode.placement = None
+        self._repaint_placements()
 
     def _check_lineclear_repaint(self, x, y):
         lineclear = all([px, y] in self._placements
@@ -251,6 +246,15 @@ class _FieldCanvas(_BaseMinoCanvas):
                     )
         else:
             self._paint_mino(x, y, self._field.at(x, y))
+
+    def repaint(self):
+        self._clear_placements()
+        self._clear_ghosts()
+        for y in range(-Consts.GARBAGE_HEIGHT, Consts.HEIGHT):
+            for x in range(self._width):
+                self._paint_mino(x, y, self._field.at(x, y), 'normal')
+            self._check_lineclear_repaint(0, y)
+        self._repaint_placements()
 
     def _clear_ghosts(self):
         for x, y in self._ghosts:
@@ -281,21 +285,21 @@ class _FieldCanvas(_BaseMinoCanvas):
             if self._field.at(x, y) is Mino._:
                 self._check_lineclear_repaint(x, y)
 
-    def _shift_repaint(self, dx, dy):
-        self._clear_placements()
+    def _repaint_placements(self):
         self._clear_ghosts()
-        for y in range(-Consts.GARBAGE_HEIGHT, Consts.HEIGHT):
-            for x in range(self._width):
-                self._paint_mino(x, y, self._field.at(x, y), 'normal')
-            self._check_lineclear_repaint(0, y)
+        self._clear_placements()
         if _CanvasMode.placement:
-            _CanvasMode.placement.shift(dx, dy)
             if self._field.is_placeable(_CanvasMode.placement):
                 self._placements = _CanvasMode.placement.shape()
                 self._paint_placements()
                 self._repaint_ghosts()
             else:
                 _CanvasMode.placement = None
+
+    def _shift_repaint(self, dx, dy):
+        if _CanvasMode.placement:
+            _CanvasMode.placement.shift(dx, dy)
+        self.repaint()
 
     def shift_up(self, amount=1):
         self._field.shift_up(amount)
@@ -315,6 +319,9 @@ class _FieldCanvas(_BaseMinoCanvas):
 
     def field(self):
         return self._field.copy()
+
+    def replace_field(self, field):
+        self._field = field.copy()
 
 class _MinoPickerCanvas(_BaseMinoCanvas):
     def __init__(self, parent, mino_size):
@@ -384,6 +391,10 @@ class FumenCanvasFrame(ttk.Frame):
         self._picker_canvas.grid()
         self._picker_canvas.update_mino()
 
+        self._pages = [Page(field=Field(), flags=Flags())]
+        self._current_page = 0
+        self._to_page(0)
+
         self.bind_all(f'<{_keys.PICKER_WHEEL_MOD}-Button-4>',
                       self._on_rotation_scroll)
         self.bind_all(f'<{_keys.PICKER_WHEEL_MOD}-Button-5>',
@@ -393,6 +404,9 @@ class FumenCanvasFrame(ttk.Frame):
         self.bind_all('<Button-4>', self._on_mino_scroll)
         self.bind_all('<Button-5>', self._on_mino_scroll)
         self.bind_all('<MouseWheel>', self._on_mino_scroll)
+
+        self.bind_all(f'<{_keys.FUMEN_PAGEDOWN}>', self._page_down)
+        self.bind_all(f'<{_keys.FUMEN_PAGEUP}>', self._page_up)
 
         self.bind(f'<{_keys.CANVAS_SHIFT_MOD}-Up>', self._on_shift_up)
         self.bind(f'<{_keys.CANVAS_SHIFT_MOD}-Down>', self._on_shift_down)
@@ -422,6 +436,46 @@ class FumenCanvasFrame(ttk.Frame):
                 delta *= -1
             _CanvasMode.rotation = _CanvasMode.rotation.shifted(delta)
             self._picker_canvas.update_mino()
+
+    def _save_current_page(self):
+        page = self._pages[self._current_page]
+        page.field = self._field_canvas.field()
+        page.operation = copy(_CanvasMode.placement)
+
+    def _to_page(self, page):
+        print('to page', page)
+        self._current_page = page
+        self._field_canvas.replace_field(self._pages[page].field)
+        _CanvasMode.placement = self._pages[page].operation
+        self._field_canvas.repaint()
+
+    def _page_down(self, event):
+        self._save_current_page()
+        page = self._current_page + 1
+        if page >= len(self._pages):
+            last_page = self._pages[-1]
+            field = last_page.field.copy()
+            field.apply_action(Action(
+                last_page.operation if last_page.operation
+                else Operation(Mino._, Rotation.SPAWN, 0, 22),
+                last_page.flags.rise,
+                last_page.flags.mirror,
+                None,
+                None,
+                last_page.flags.lock
+            ))
+            self._pages.append(Page(
+                field=field,
+                flags=last_page.flags,
+                comment=last_page.comment
+            ))
+        self._to_page(page)
+
+    def _page_up(self, event):
+        self._save_current_page()
+        page = self._current_page - 1
+        if page >= 0:
+            self._to_page(page)
 
     def _on_shift_up(self, event):
         self._field_canvas.shift_up()

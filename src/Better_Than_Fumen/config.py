@@ -67,3 +67,5 @@ class KeyConfig:
     PICKER_WHEEL_ENABLED = True
     PICKER_WHEEL_REVERSED = False
     PICKER_WHEEL_MOD = 'Shift'
+    FUMEN_PAGEDOWN = 'Next'
+    FUMEN_PAGEUP = 'Prior'
