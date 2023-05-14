@@ -15,15 +15,15 @@ _config = CanvasConfig()
 _keys = KeyConfig()
 
 class _CanvasMode:
+    """Static class for data interchange between classes within this module."""
     mino = Mino._
     rotation = Rotation.SPAWN
     direct_place = False
     placement = None
 
 class _BaseMinoCanvas(Canvas):
-    """ _BaseMinoCanvas is the base class of MinoCanvas and MinoPicker.
-    This base class provides the most basic functionalities for a mino canvas,
-    such as painting minos, and resising of the canvas.
+    """ The base class of MinoCanvas and MinoPicker.
+    Provide the most basic functionalities for a mino canvas.
     Mino states should be handled by the derived classes, and thus not stored.
     """
     def __init__(self, parent, mino_size, height, width):
@@ -126,8 +126,6 @@ class _BaseMinoCanvas(Canvas):
 
 class _FieldCanvas(_BaseMinoCanvas):
     """The canvas where the actual minos are drawn."""
-    Y_TRANSFORM = {y: Consts.TOTAL_HEIGHT - y - 2
-                   for y in range(-Consts.GARBAGE_HEIGHT, Consts.TOTAL_HEIGHT)}
 
     def __init__(self, parent, mino_size):
         """Keyword arguments:
@@ -161,15 +159,23 @@ class _FieldCanvas(_BaseMinoCanvas):
                   self._on_draw_reset)
 
     def _event_coords(self, event):
+        """Convert tkinter event coords to the mino grid coords,
+        and transform the y coord to match that in the Field class.
+        """
         return ((event.x-1)//self._mino_size,
-                self.Y_TRANSFORM.get((event.y-1)//self._mino_size,
-                                     Consts.HEIGHT+1))
+                Consts.TOTAL_HEIGHT-2-(event.y-1)//self._mino_size)
 
     def _is_inside_field(self, x, y):
+        """Check if a mino grid coords is inside a Field."""
         return (0 <= x < self._width and
                 -Consts.GARBAGE_HEIGHT <= y < Consts.HEIGHT)
 
     def _on_draw(self, event):
+        """Draw event handler.
+        The default behavior of most Fumen editors.
+        Draw placement if the right-most column of the picker is not selected;
+        otherwise, draw mino.
+        """
         x, y = self._event_coords(event)
         if _CanvasMode.direct_place and _CanvasMode.mino.is_colored():
             self._draw_placement(x, y)
@@ -177,6 +183,10 @@ class _FieldCanvas(_BaseMinoCanvas):
             self._draw_mino(x, y)
 
     def _on_inverted_draw(self, event):
+        """Draw event handler (inverted).
+        Draw mino if the right-most column of the picker is selected;
+        otherwise, draw drawplacement.
+        """
         x, y = self._event_coords(event)
         if _CanvasMode.direct_place or not _CanvasMode.mino.is_colored():
             self._draw_mino(x, y)
@@ -184,15 +194,20 @@ class _FieldCanvas(_BaseMinoCanvas):
             self._draw_placement(x, y)
 
     def _on_draw_reset(self, event):
+        """Reset the drawing mino when a drawing event ends."""
         self._drawing_mino = None
 
     def _paint_mino(self, x, y, mino, type_='normal'):
+        """Retrieve the desired mino fill and outline for paint_mino_at()."""
         self.paint_mino_at(
-            x, self.Y_TRANSFORM[y],
+            x, Consts.TOTAL_HEIGHT-2-y,
             _config.mino_fill(mino, type_), _config.OUTLINE['normal']
         )
 
     def on_resize(self, mino_size):
+        """Call super().on_resize() to check if resizing happens,
+        and resize the garbage separator accordingly.
+        """
         if super().on_resize(mino_size):
             self.coords(
                 self._garbage_separator,
@@ -201,6 +216,10 @@ class _FieldCanvas(_BaseMinoCanvas):
             )
 
     def _draw_mino(self, x, y):
+        """Draw mino at the given mino grid coords.
+        Remove placements if the coords are overlapping with the placement.
+        Clear and repaint ghosts.
+        """
         if self._is_inside_field(x, y):
             if [x, y] in self._placements:
                 self._clear_placements()
@@ -218,6 +237,7 @@ class _FieldCanvas(_BaseMinoCanvas):
             self._repaint_ghosts()
 
     def _draw_placement(self, x, y):
+        """Convert the event to an Operation and repaint placement."""
         if _CanvasMode.mino.is_colored():
             _CanvasMode.placement = Operation(
                 _CanvasMode.mino, _CanvasMode.rotation, x, y,
@@ -225,6 +245,10 @@ class _FieldCanvas(_BaseMinoCanvas):
         self._repaint_placements()
 
     def _check_lineclear_repaint(self, x, y):
+        """Check lineclear (and placements) at the given mino grid coords,
+        and repaint accordingly.
+        The garbage line(s) are not affected by lineclears.
+        """
         lineclear = all([px, y] in self._placements
                         or self._field.at(px, y) is not Mino._
                         for px in range(self._width))
@@ -248,6 +272,7 @@ class _FieldCanvas(_BaseMinoCanvas):
             self._paint_mino(x, y, self._field.at(x, y))
 
     def repaint(self):
+        """Repaint the whole canvas, including placements and ghosts."""
         self._clear_placements()
         self._clear_ghosts()
         for y in range(-Consts.GARBAGE_HEIGHT, Consts.HEIGHT):
@@ -257,6 +282,7 @@ class _FieldCanvas(_BaseMinoCanvas):
         self._repaint_placements()
 
     def _clear_ghosts(self):
+        """Remove painted ghosts and clear the list of ghost coords."""
         for x, y in self._ghosts:
             if ([x, y] not in self._placements
                     and self._field.at(x, y) is Mino._):
@@ -264,6 +290,9 @@ class _FieldCanvas(_BaseMinoCanvas):
         self._ghosts.clear()
 
     def _repaint_ghosts(self):
+        """Clear ghosts, call Field.drop() to determine the ghost coords of
+        the current placement, and paint ghosts accordingly.
+        """
         self._clear_ghosts()
         if _CanvasMode.placement:
             self._ghosts = self._field.drop(
@@ -274,48 +303,50 @@ class _FieldCanvas(_BaseMinoCanvas):
                 self._paint_mino(x, y, _CanvasMode.placement.mino, 'ghost')
 
     def _clear_placements(self):
+        """Clear the painted placements and the list of placement coords.
+        Also clear the ghosts and the list of ghost coords.
+        """
         placements = self._placements[:]
         self._placements.clear()
         for x, y in placements:
             self._check_lineclear_repaint(x, y)
         self._clear_ghosts()
 
-    def _paint_placements(self):
-        for x, y in self._placements:
-            if self._field.at(x, y) is Mino._:
-                self._check_lineclear_repaint(x, y)
-
     def _repaint_placements(self):
+        """Clear the painted placements and repaint.
+        Reset the placement if it is not valid.
+        """
         self._clear_ghosts()
         self._clear_placements()
         if _CanvasMode.placement:
             if self._field.is_placeable(_CanvasMode.placement):
                 self._placements = _CanvasMode.placement.shape()
-                self._paint_placements()
+                for x, y in self._placements:
+                    self._check_lineclear_repaint(x, y)
                 self._repaint_ghosts()
             else:
                 _CanvasMode.placement = None
 
-    def _shift_repaint(self, dx, dy):
+    def _shift_placement_repaint(self, dx, dy):
         if _CanvasMode.placement:
             _CanvasMode.placement.shift(dx, dy)
         self.repaint()
 
     def shift_up(self, amount=1):
         self._field.shift_up(amount)
-        self._shift_repaint(0, amount)
+        self._shift_placement_repaint(0, amount)
 
     def shift_down(self, amount=1):
         self._field.shift_down(amount)
-        self._shift_repaint(0, -amount)
+        self._shift_placement_repaint(0, -amount)
 
     def shift_left(self, amount=1, warp=False):
         self._field.shift_left(amount, warp)
-        self._shift_repaint(-amount, 0)
+        self._shift_placement_repaint(-amount, 0)
 
     def shift_right(self, amount=1, warp=False):
         self._field.shift_right(amount, warp)
-        self._shift_repaint(amount, 0)
+        self._shift_placement_repaint(amount, 0)
 
     def field(self):
         return self._field.copy()
@@ -324,7 +355,13 @@ class _FieldCanvas(_BaseMinoCanvas):
         self._field = field.copy()
 
 class _MinoPickerCanvas(_BaseMinoCanvas):
+    """The canvas for mino and rotation selection."""
+
     def __init__(self, parent, mino_size):
+        """Keyword arguments:
+        parent: the parent of this canvas as a tkinter widget.
+        mino_size: the mino size of this canvas
+        """
         super().__init__(parent, mino_size, len(Mino), 5)
         self._prev_selection = [4, 0]
 
@@ -335,12 +372,20 @@ class _MinoPickerCanvas(_BaseMinoCanvas):
                     self.set_text_at(x, y, x.short_name())
                 else:
                     self.delete(self._rects[x][y])
+                    self.delete(self._texts[x][y])
             self._paint_mino(len(Rotation), y)
 
         self.bind(f'<ButtonPress-{_keys.PICKER_SELECT_BTN}>',
                   self._on_select_mino)
 
     def _on_select_mino(self, event):
+        """Event handler for mino selection.
+        Update mino, rotation and direct_place in _CanvasMode.
+        direct_place is reset if the right-most column is selected,
+        and is set otherwise.
+        direct_place determines whether placement or mino should be drawn
+        when a click event happens within _FieldCanvas.
+        """
         x, y = self._event_coords(event)
         if self._is_inside(x, y):
             _CanvasMode.mino = Mino(y)
@@ -350,14 +395,18 @@ class _MinoPickerCanvas(_BaseMinoCanvas):
             else:
                 _CanvasMode.direct_place = False
                 _CanvasMode.rotation = Rotation.SPAWN
-            self.update_mino()
+            self.repaint()
 
     def _paint_mino(self, x, y, selected=False):
+        """Retreieve the desired mino fill and outline for paint_mino_at()"""
         self.paint_mino_at(
             x, y, _config.mino_fill(y),
             _config.OUTLINE['selected' if selected else 'normal'])
 
-    def update_mino(self):
+    def repaint(self):
+        """Repaint according to the new selection.
+        The right-most column indicates if the direct_place mode is enabled.
+        """
         x, y = self._prev_selection
         self._paint_mino(x, y)
         self._paint_mino(len(Rotation), y)
@@ -372,6 +421,7 @@ class _MinoPickerCanvas(_BaseMinoCanvas):
             self._paint_mino(len(Rotation), y, True)
 
 class FumenCanvasFrame(ttk.Frame):
+    """The tkinter frame extension for the Fumen drawing canvas."""
     def __init__(self, parent):
         super().__init__(parent)
 
@@ -389,7 +439,7 @@ class FumenCanvasFrame(ttk.Frame):
             floor(_config.MINO_SIZE*_config.PICKER_SIZE_MULT)
         )
         self._picker_canvas.grid()
-        self._picker_canvas.update_mino()
+        self._picker_canvas.repaint()
 
         self._pages = [Page(field=Field(), flags=Flags())]
         self._current_page = 0
@@ -416,6 +466,9 @@ class FumenCanvasFrame(ttk.Frame):
         self.bind('<Configure>', self._on_resize)
 
     def _on_mino_scroll(self, event):
+        """Event handler for scrolling wihtout a modifier key.
+        Switch to the next or the previous mino if scrolling is enabled.
+        """
         if _keys.PICKER_WHEEL_ENABLED:
             if event.delta > 0 or event.num == 4:
                 delta = 1
@@ -424,9 +477,12 @@ class FumenCanvasFrame(ttk.Frame):
             if _keys.PICKER_WHEEL_REVERSED:
                 delta *= -1
             _CanvasMode.mino = _CanvasMode.mino.shifted(delta)
-            self._picker_canvas.update_mino()
+            self._picker_canvas.repaint()
 
     def _on_rotation_scroll(self, event):
+        """Event handler for scrolling with the desired modifier key.
+        Switch to the next or the previous rotation if scrolling is enabled.
+        """
         if _keys.PICKER_WHEEL_ENABLED:
             if event.delta > 0 or event.num == 4:
                 delta = 1
@@ -435,14 +491,16 @@ class FumenCanvasFrame(ttk.Frame):
             if _keys.PICKER_WHEEL_REVERSED:
                 delta *= -1
             _CanvasMode.rotation = _CanvasMode.rotation.shifted(delta)
-            self._picker_canvas.update_mino()
+            self._picker_canvas.repaint()
 
     def _save_current_page(self):
+        """Save the _FieldCanvas to the viewed page."""
         page = self._pages[self._current_page]
         page.field = self._field_canvas.field()
         page.operation = copy(_CanvasMode.placement)
 
     def _to_page(self, page):
+        """Load page to _FieldCanvas."""
         print('to page', page)
         self._current_page = page
         self._field_canvas.replace_field(self._pages[page].field)
@@ -450,6 +508,8 @@ class FumenCanvasFrame(ttk.Frame):
         self._field_canvas.repaint()
 
     def _page_down(self, event):
+        """Switch to the next page.
+        Add a new page if the current page is the last page."""
         self._save_current_page()
         page = self._current_page + 1
         if page >= len(self._pages):
@@ -472,6 +532,8 @@ class FumenCanvasFrame(ttk.Frame):
         self._to_page(page)
 
     def _page_up(self, event):
+        """Switch to the previous page.
+        Do nothing if the current page is the first page."""
         self._save_current_page()
         page = self._current_page - 1
         if page >= 0:
@@ -490,6 +552,9 @@ class FumenCanvasFrame(ttk.Frame):
         self._field_canvas.shift_right()
 
     def _on_resize(self, event):
+        """Calculate the maximum suitable mino size
+        and resize the underlying canvases.
+        """
         max_width = floor((event.width - 4)
             / (Consts.WIDTH + (len(Rotation)+1) * _config.PICKER_SIZE_MULT))
         max_height = (event.height - 4) // (Consts.TOTAL_HEIGHT)
