@@ -2,7 +2,7 @@
 
 from copy import copy
 from math import floor
-from tkinter import ttk, font, Frame, Canvas
+from tkinter import ttk, font, Frame, Canvas, Label
 from tkinter import E, W, S, N
 
 from py_fumen_py import *
@@ -21,26 +21,28 @@ class _CanvasMode:
     direct_place = False
     placement = None
 
-class _BaseMinoCanvas(Canvas):
+class _BaseMinoFrame(ttk.Frame):
     """ The base class of MinoCanvas and MinoPicker.
     Provide the most basic functionalities for a mino canvas.
     Mino states should be handled by the derived classes, and thus not stored.
     """
-    def __init__(self, parent, mino_size, height, width):
+    def __init__(self, parent, mino_size, height, width, **kwargs):
         """Keyword arguments:
         parent: the parent of this canvas as a tkinter widget.
         mino_size: the mino size of this canvas
         height: the height of this canvas (in minos)
         width: the width of this canvas (in minos)
         """
-        super().__init__(parent, height=height*mino_size,
-                         width=width*mino_size)
+        super().__init__(parent, **kwargs)
+        self._canvas = Canvas(self, height=height*mino_size,
+                              width=width*mino_size)
+        self._canvas.grid()
         self._height = height
         self._width = width
         self._mino_size = mino_size
 
         self._rects = [[
-                self.create_rectangle(
+                self._canvas.create_rectangle(
                     x*self._mino_size+2, y*self._mino_size+2,
                     (x+1)*self._mino_size, (y+1)*self._mino_size,
                     fill='black', outline='gray25', width=_config.LINE_WIDTH,
@@ -62,7 +64,7 @@ class _BaseMinoCanvas(Canvas):
         """Paint mino at a given mino grid coords."""
         if self._is_inside(x, y):
             if self._rects[x][y] is not None:
-                self.itemconfigure(
+                self._canvas.itemconfigure(
                     self._rects[x][y],
                     fill=fill,
                     outline=outline,
@@ -72,7 +74,7 @@ class _BaseMinoCanvas(Canvas):
         """Alter text at a given mino grid coords."""
         if self._is_inside(x, y):
             if self._texts[x][y] is None:
-                self._texts[x][y] = self.create_text(
+                self._texts[x][y] = self._canvas.create_text(
                     (x+0.5)*self._mino_size, (y+0.5)*self._mino_size,
                     fill=_config.TEXT_COLOR,
                     font=(
@@ -81,7 +83,7 @@ class _BaseMinoCanvas(Canvas):
                         font.NORMAL
                     ),
                 )
-            self.itemconfigure(
+            self._canvas.itemconfigure(
                 self._texts[x][y],
                 text=text,
             )
@@ -89,19 +91,19 @@ class _BaseMinoCanvas(Canvas):
     def _resize_at(self, x, y):
         """Resize the mino and the text at a given mino grid coords."""
         if self._is_inside(x, y):
-            if self._rects[x][y] is not None:
+            if self._rects[x][y]:
                 self.coords(
                     self._rects[x][y],
                     x*self._mino_size+2, y*self._mino_size+2,
                     (x+1)*self._mino_size, (y+1)*self._mino_size,
                 )
-            if self._texts[x][y] is not None:
-                self.coords(
+            if self._texts[x][y]:
+                self._canvas.coords(
                     self._texts[x][y],
                     (x+0.5)*self._mino_size,
                     (y+0.5)*self._mino_size,
                 )
-                self.itemconfigure(
+                self._canvas.itemconfigure(
                     self._texts[x][y],
                     font=(
                         "TkDefaultFont",
@@ -109,31 +111,32 @@ class _BaseMinoCanvas(Canvas):
                         font.NORMAL,
                     ),
                 )
-                if self._rects[x][y] is not None:
-                    self.tag_raise(self._texts[x][y], self._rects[x][y])
+            if self._texts[x][y] and self._rects[x][y]:
+                self._canvas.tag_raise(self._texts[x][y], self._rects[x][y])
 
     def on_resize(self, mino_size):
         """Resize the canvas objects if the whole canvas is resized."""
         if self._mino_size != mino_size:
             self._mino_size = mino_size
-            self.config(height=self._height*self._mino_size,
-                        width=self._width*self._mino_size)
+            self._canvas.config(height=self._height*self._mino_size,
+                                width=self._width*self._mino_size)
             for x in range(self._width):
                 for y in range(self._height):
                     self._resize_at(x, y)
             return True
         return False
 
-class _FieldCanvas(_BaseMinoCanvas):
-    """The canvas where the actual minos are drawn."""
+class _FieldCanvasFrame(_BaseMinoFrame):
+    """The frame where the actual minos are drawn."""
 
-    def __init__(self, parent, mino_size):
+    def __init__(self, parent, mino_size, **kwargs):
         """Keyword arguments:
         parent: the parent of this canvas as a tkinter widget.
         mino_size: the mino size of this canvas
         """
-        super().__init__(parent, mino_size, Consts.TOTAL_HEIGHT, Consts.WIDTH)
-        self._garbage_separator = self.create_line(
+        super().__init__(parent, mino_size,
+            Consts.TOTAL_HEIGHT, Consts.WIDTH, **kwargs)
+        self._garbage_separator = self._canvas.create_line(
             0, Consts.HEIGHT*mino_size+1,
             Consts.WIDTH*mino_size, Consts.HEIGHT*mino_size+1,
             fill='gray75', width=_config.LINE_WIDTH,
@@ -145,18 +148,20 @@ class _FieldCanvas(_BaseMinoCanvas):
         self._placements = []
         self._lineclear = [False for y in range(Consts.HEIGHT)]
 
-        self.bind(
+        self._canvas.bind(
             f'<{_keys.CANVAS_INVERT_MOD}-ButtonPress-{_keys.CANVAS_DRAW_BTN}>',
             self._on_inverted_draw
         )
-        self.bind(
+        self._canvas.bind(
             f'<{_keys.CANVAS_INVERT_MOD}-B{_keys.CANVAS_DRAW_BTN}-Motion>',
             self._on_inverted_draw
         )
-        self.bind(f'<ButtonPress-{_keys.CANVAS_DRAW_BTN}>', self._on_draw)
-        self.bind(f'<B{_keys.CANVAS_DRAW_BTN}-Motion>', self._on_draw)
-        self.bind(f'<ButtonRelease-{_keys.CANVAS_DRAW_BTN}>',
-                  self._on_draw_reset)
+        self._canvas.bind(f'<ButtonPress-{_keys.CANVAS_DRAW_BTN}>',
+                          self._on_draw)
+        self._canvas.bind(f'<B{_keys.CANVAS_DRAW_BTN}-Motion>',
+                          self._on_draw)
+        self._canvas.bind(f'<ButtonRelease-{_keys.CANVAS_DRAW_BTN}>',
+                          self._on_draw_reset)
 
     def _event_coords(self, event):
         """Convert tkinter event coords to the mino grid coords,
@@ -209,7 +214,7 @@ class _FieldCanvas(_BaseMinoCanvas):
         and resize the garbage separator accordingly.
         """
         if super().on_resize(mino_size):
-            self.coords(
+            self._canvas.coords(
                 self._garbage_separator,
                 0, Consts.HEIGHT*mino_size+1,
                 Consts.WIDTH*mino_size, Consts.HEIGHT*mino_size+1,
@@ -354,15 +359,15 @@ class _FieldCanvas(_BaseMinoCanvas):
     def replace_field(self, field):
         self._field = field.copy()
 
-class _MinoPickerCanvas(_BaseMinoCanvas):
-    """The canvas for mino and rotation selection."""
-
-    def __init__(self, parent, mino_size):
+class _MinoPickerFrame(_BaseMinoFrame):
+    """The frame for mino and rotation selection."""
+    def __init__(self, parent, mino_size, **kwargs):
         """Keyword arguments:
         parent: the parent of this canvas as a tkinter widget.
         mino_size: the mino size of this canvas
         """
-        super().__init__(parent, mino_size, len(Mino), 5)
+        super().__init__(parent, mino_size,
+            len(Mino), len(Rotation)+1, **kwargs)
         self._prev_selection = [4, 0]
 
         for y in Mino:
@@ -371,12 +376,12 @@ class _MinoPickerCanvas(_BaseMinoCanvas):
                     self._paint_mino(x, y)
                     self.set_text_at(x, y, x.short_name())
                 else:
-                    self.delete(self._rects[x][y])
-                    self.delete(self._texts[x][y])
+                    self._canvas.delete(self._rects[x][y])
+                    self._canvas.delete(self._texts[x][y])
             self._paint_mino(len(Rotation), y)
 
-        self.bind(f'<ButtonPress-{_keys.PICKER_SELECT_BTN}>',
-                  self._on_select_mino)
+        self._canvas.bind(f'<ButtonPress-{_keys.PICKER_SELECT_BTN}>',
+                          self._on_select_mino)
 
     def _on_select_mino(self, event):
         """Event handler for mino selection.
@@ -420,26 +425,37 @@ class _MinoPickerCanvas(_BaseMinoCanvas):
         if not _CanvasMode.direct_place:
             self._paint_mino(len(Rotation), y, True)
 
+class _ControlPanelFrame(ttk.Frame):
+    """The control panel for the fumen canvas."""
+    def __init__(self, parent, unit_size, **kwargs):
+        """Keyword arguments:
+        parent: the parent of this canvas as a tkinter widget.
+        unit_size: the displayeing unit size (mino_size of the canvas)
+        """
+        super().__init__(parent, **kwargs)
+        self._label = Label(self, text='(Control panel placeholder)')
+        self._label.grid()
+
 class FumenCanvasFrame(ttk.Frame):
     """The tkinter frame extension for the Fumen drawing canvas."""
     def __init__(self, parent):
         super().__init__(parent)
 
-        self._field_frame = ttk.Frame(self, padding=2)
+        self._field_frame = _FieldCanvasFrame(
+            self, _config.MINO_SIZE, padding=2
+        )
         self._field_frame.grid(column=1, row=0, rowspan=2, sticky=(S,W))
-        self._field_canvas = _FieldCanvas(
-            self._field_frame, _config.MINO_SIZE
-        )
-        self._field_canvas.grid()
 
-        self._picker_frame = ttk.Frame(self, padding=2)
-        self._picker_frame.grid(column=0, row=0, sticky=(S,E))
-        self._picker_canvas = _MinoPickerCanvas(
-            self._picker_frame,
-            floor(_config.MINO_SIZE*_config.PICKER_SIZE_MULT)
+        self._picker_frame = _MinoPickerFrame(
+            self, floor(_config.MINO_SIZE*_config.PICKER_SIZE_MULT), padding=2
         )
-        self._picker_canvas.grid()
-        self._picker_canvas.repaint()
+        self._picker_frame.grid(column=0, row=1, sticky=(S,E))
+        self._picker_frame.repaint()
+
+        self._control_frame = _ControlPanelFrame(
+            self, _config.MINO_SIZE, padding=2
+        )
+        self._control_frame.grid(column=0, row=0, sticky=(S,E))
 
         self._pages = [Page(field=Field(), flags=Flags())]
         self._current_page = 0
@@ -477,7 +493,7 @@ class FumenCanvasFrame(ttk.Frame):
             if _keys.PICKER_WHEEL_REVERSED:
                 delta *= -1
             _CanvasMode.mino = _CanvasMode.mino.shifted(delta)
-            self._picker_canvas.repaint()
+            self._picker_frame.repaint()
 
     def _on_rotation_scroll(self, event):
         """Event handler for scrolling with the desired modifier key.
@@ -491,20 +507,20 @@ class FumenCanvasFrame(ttk.Frame):
             if _keys.PICKER_WHEEL_REVERSED:
                 delta *= -1
             _CanvasMode.rotation = _CanvasMode.rotation.shifted(delta)
-            self._picker_canvas.repaint()
+            self._picker_frame.repaint()
 
     def _save_current_page(self):
         """Save the _FieldCanvas to the viewed page."""
         page = self._pages[self._current_page]
-        page.field = self._field_canvas.field()
+        page.field = self._field_frame.field()
         page.operation = copy(_CanvasMode.placement)
 
     def _to_page(self, page):
         """Load page to _FieldCanvas."""
         self._current_page = page
-        self._field_canvas.replace_field(self._pages[page].field)
+        self._field_frame.replace_field(self._pages[page].field)
         _CanvasMode.placement = self._pages[page].operation
-        self._field_canvas.repaint()
+        self._field_frame.repaint()
 
     def _page_down(self, event):
         """Switch to the next page.
@@ -516,17 +532,17 @@ class FumenCanvasFrame(ttk.Frame):
             field = last_page.field.copy()
             field.apply_action(Action(
                 last_page.operation if last_page.operation
-                else Operation(Mino._, Rotation.SPAWN, 0, 22),
+                else Operation(Mino._, Rotation.REVERSE, 0, Consts.HEIHGT-1),
                 last_page.flags.rise,
                 last_page.flags.mirror,
                 None,
                 None,
-                last_page.flags.lock
+                last_page.flags.lock,
             ))
             self._pages.append(Page(
                 field=field,
-                flags=last_page.flags,
-                comment=last_page.comment
+                flags=copy(last_page.flags),
+                comment=last_page.comment,
             ))
         self._to_page(page)
 
@@ -539,16 +555,16 @@ class FumenCanvasFrame(ttk.Frame):
             self._to_page(page)
 
     def _on_shift_up(self, event):
-        self._field_canvas.shift_up()
+        self._field_frame.shift_up()
 
     def _on_shift_down(self, event):
-        self._field_canvas.shift_down()
+        self._field_frame.shift_down()
 
     def _on_shift_left(self, event):
-        self._field_canvas.shift_left()
+        self._field_frame.shift_left()
 
     def _on_shift_right(self, event):
-        self._field_canvas.shift_right()
+        self._field_frame.shift_right()
 
     def _on_resize(self, event):
         """Calculate the maximum suitable mino size
@@ -558,6 +574,6 @@ class FumenCanvasFrame(ttk.Frame):
             / (Consts.WIDTH + (len(Rotation)+1) * _config.PICKER_SIZE_MULT))
         max_height = (event.height - 4) // (Consts.TOTAL_HEIGHT)
         mino_size = min(max_width, max_height)
-        self._field_canvas.on_resize(mino_size)
-        self._picker_canvas.on_resize(
+        self._field_frame.on_resize(mino_size)
+        self._picker_frame.on_resize(
             floor(mino_size*_config.PICKER_SIZE_MULT))
