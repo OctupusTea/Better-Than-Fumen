@@ -20,15 +20,15 @@ A Python-based Fumen editor aims to enahnce usability and simplify Fumen sharing
 
 ### Required
 
-- `py-fumen-py`: Python implementation of knewjade's `tetris-fumen` Node JS module.
+- [`py-fumen-py`](https://github.com/OctupusTea/py-fumen-py): Python implementation of knewjade's `tetris-fumen` Node JS module.
 
 ### Recommended
 
 - Currently utilized:
 	- None
 - Currenlty not utilized:
-	- `py-fumen-util`: Python implememtation of swng's `FumenUtil`.
-	- `solution-finder`: knewjade's Tetris solution finder.
+	- [`py-fumen-util`](https://github.com/OctupusTea/py-fumen-util): Python implememtation of swng's `FumenUtil`.
+	- [`solution-finder`](https://github.com/knewjade/solution-finder/): knewjade's Tetris solution finder.
 
 ```Python
 # To be continued
