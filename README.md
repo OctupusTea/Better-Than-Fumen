@@ -11,6 +11,7 @@ A Python-based Fumen editor aims to enahnce usability and simplify Fumen sharing
 	- If the ONLY minos labelled with rotation symbols are selected, the shifting behaviour inverses
 	- If the empty (black) or the garbage (grey) is selected, only mino drawing is available regardless of shift
 - Shift-arrowkeys (up/down/left/right) to shift the whole field around
+-  PageUp and PageDown to browse stored pages.
 
 > The current control methods of field-shifting (shift-arrowkeys) are an add-on to the common practice
 > 
