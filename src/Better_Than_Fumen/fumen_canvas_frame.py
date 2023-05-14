@@ -501,7 +501,6 @@ class FumenCanvasFrame(ttk.Frame):
 
     def _to_page(self, page):
         """Load page to _FieldCanvas."""
-        print('to page', page)
         self._current_page = page
         self._field_canvas.replace_field(self._pages[page].field)
         _CanvasMode.placement = self._pages[page].operation
