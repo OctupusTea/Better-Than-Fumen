@@ -2,8 +2,9 @@
 
 from copy import copy
 from math import floor
-from tkinter import ttk, font, Frame, Canvas, Label
-from tkinter import E, W, S, N
+from tkinter import ttk, font, Button, Canvas, Frame, Label
+from tkinter import N, S, E, W
+import tkinter as tk
 
 from py_fumen_py import *
 from py_fumen_py.action import Action
@@ -77,11 +78,7 @@ class _BaseMinoFrame(ttk.Frame):
                 self._texts[x][y] = self._canvas.create_text(
                     (x+0.5)*self._mino_size, (y+0.5)*self._mino_size,
                     fill=_config.TEXT_COLOR,
-                    font=(
-                        "TkDefaultFont",
-                        self._mino_size//2,
-                        font.NORMAL
-                    ),
+                    font=_config.FONT,
                 )
             self._canvas.itemconfigure(
                 self._texts[x][y],
@@ -92,7 +89,7 @@ class _BaseMinoFrame(ttk.Frame):
         """Resize the mino and the text at a given mino grid coords."""
         if self._is_inside(x, y):
             if self._rects[x][y]:
-                self.coords(
+                self._canvas.coords(
                     self._rects[x][y],
                     x*self._mino_size+2, y*self._mino_size+2,
                     (x+1)*self._mino_size, (y+1)*self._mino_size,
@@ -105,11 +102,7 @@ class _BaseMinoFrame(ttk.Frame):
                 )
                 self._canvas.itemconfigure(
                     self._texts[x][y],
-                    font=(
-                        "TkDefaultFont",
-                        self._mino_size//2,
-                        font.NORMAL,
-                    ),
+                    font=_config.FONT,
                 )
             if self._texts[x][y] and self._rects[x][y]:
                 self._canvas.tag_raise(self._texts[x][y], self._rects[x][y])
@@ -374,10 +367,10 @@ class _MinoPickerFrame(_BaseMinoFrame):
             for x in Rotation:
                 if y.is_colored():
                     self._paint_mino(x, y)
-                    self.set_text_at(x, y, x.short_name())
                 else:
+                    self.set_text_at(x, y, x.short_name())
                     self._canvas.delete(self._rects[x][y])
-                    self._canvas.delete(self._texts[x][y])
+                    self._rects[x][y] = None
             self._paint_mino(len(Rotation), y)
 
         self._canvas.bind(f'<ButtonPress-{_keys.PICKER_SELECT_BTN}>',
@@ -405,7 +398,9 @@ class _MinoPickerFrame(_BaseMinoFrame):
     def _paint_mino(self, x, y, selected=False):
         """Retreieve the desired mino fill and outline for paint_mino_at()"""
         self.paint_mino_at(
-            x, y, _config.mino_fill(y),
+            x, y, _config.mino_fill(
+                y, type_='normal' if x == len(Rotation) else 'placement'
+            ),
             _config.OUTLINE['selected' if selected else 'normal'])
 
     def repaint(self):
@@ -433,13 +428,90 @@ class _ControlPanelFrame(ttk.Frame):
         unit_size: the displayeing unit size (mino_size of the canvas)
         """
         super().__init__(parent, **kwargs)
-        self._label = Label(self, text='(Control panel placeholder)')
-        self._label.grid()
+        self._unit_size = unit_size
+        self._page_label = Label(
+            self, text='Page 1/1', font=_config.FONT,
+            relief='flat', borderwidth=_config.LINE_WIDTH,
+        )
+        self._page_label.grid(column=2, row=0, sticky=(N,S,E,W))
+
+        self._first_button = Button(
+            self, text='|<', font=_config.FONT,
+            borderwidth=_config.LINE_WIDTH,
+        )
+        self._first_button.grid(column=0, row=0, sticky=(E,W))
+
+        self._prev_button = Button(
+            self, text='<<', font=_config.FONT,
+            borderwidth=_config.LINE_WIDTH,
+        )
+        self._prev_button.grid(column=1, row=0, sticky=(E,W))
+
+        self._next_button = Button(
+            self, text='>>', font=_config.FONT,
+            borderwidth=_config.LINE_WIDTH,
+        )
+        self._next_button.grid(column=3, row=0, sticky=(E,W))
+
+        self._last_button = Button(
+            self, text='>|', font=_config.FONT,
+            borderwidth=_config.LINE_WIDTH,
+        )
+        self._last_button.grid(column=4, row=0, sticky=(E,W))
+
+        self._delete_button = Button(
+            self, text='Del', font=_config.FONT,
+            borderwidth=_config.LINE_WIDTH,
+        )
+        self._delete_button.grid(
+            column=1, row=1, sticky=(E,W)
+        )
+
+        self._copy_button = Button(
+            self, text='Copy', font=_config.FONT,
+            borderwidth=_config.LINE_WIDTH,
+        )
+        self._copy_button.grid(
+            column=2, row=1, sticky=(E,W)
+        )
+
+        self._insert_button = Button(
+            self, text='Ins', font=_config.FONT,
+            borderwidth=_config.LINE_WIDTH,
+        )
+        self._insert_button.grid(
+            column=3, row=1, sticky=(E,W)
+        )
+
+    def update_page_label(self, current, total):
+        self._page_label.config(text=f'Page {current+1}/{total}')
+
+    def bind_page_flips(self, prev, next_, first, last, delete, copy, insert):
+        self._prev_button.config(command=prev)
+        self._next_button.config(command=next_)
+        self._first_button.config(command=first)
+        self._last_button.config(command=last)
+        self._delete_button.config(command=delete)
+        self._copy_button.config(command=copy)
+        self._insert_button.config(command=insert)
+
+    def on_resize(self, unit_size):
+        self._unit_size = unit_size
+        self._page_label.config(font=_config.FONT)
+        self._first_button.config(font=_config.FONT)
+        self._prev_button.config(font=_config.FONT)
+        self._next_button.config(font=_config.FONT)
+        self._last_button.config(font=_config.FONT)
+        self._insert_button.config(font=_config.FONT)
+        self._delete_button.config(font=_config.FONT)
 
 class FumenCanvasFrame(ttk.Frame):
     """The tkinter frame extension for the Fumen drawing canvas."""
     def __init__(self, parent):
         super().__init__(parent)
+
+        _config.FONT = font.nametofont(f'Tk{_config.FONT_STYLE}Font')
+        _config.FONT.config(size=_config.MINO_SIZE//2)
 
         self._field_frame = _FieldCanvasFrame(
             self, _config.MINO_SIZE, padding=2
@@ -456,6 +528,11 @@ class FumenCanvasFrame(ttk.Frame):
             self, _config.MINO_SIZE, padding=2
         )
         self._control_frame.grid(column=0, row=0, sticky=(S,E))
+        self._control_frame.bind_page_flips(
+            self._prev_page, self._next_page,
+            self._first_page, self._last_page,
+            self._delete_page, self._copy_page, self._insert_page,
+        )
 
         self._pages = [Page(field=Field(), flags=Flags())]
         self._current_page = 0
@@ -471,8 +548,10 @@ class FumenCanvasFrame(ttk.Frame):
         self.bind_all('<Button-5>', self._on_mino_scroll)
         self.bind_all('<MouseWheel>', self._on_mino_scroll)
 
-        self.bind_all(f'<{_keys.FUMEN_PAGEDOWN}>', self._page_down)
-        self.bind_all(f'<{_keys.FUMEN_PAGEUP}>', self._page_up)
+        self.bind_all(f'<{_keys.FUMEN_PAGEDOWN}>', self._next_page)
+        self.bind_all(f'<{_keys.FUMEN_PAGEUP}>', self._prev_page)
+        self.bind_all(f'<{_keys.FUMEN_FIRST}>', self._first_page)
+        self.bind_all(f'<{_keys.FUMEN_LAST}>', self._last_page)
 
         self.bind(f'<{_keys.CANVAS_SHIFT_MOD}-Up>', self._on_shift_up)
         self.bind(f'<{_keys.CANVAS_SHIFT_MOD}-Down>', self._on_shift_down)
@@ -521,8 +600,9 @@ class FumenCanvasFrame(ttk.Frame):
         self._field_frame.replace_field(self._pages[page].field)
         _CanvasMode.placement = self._pages[page].operation
         self._field_frame.repaint()
+        self._control_frame.update_page_label(page, len(self._pages))
 
-    def _page_down(self, event):
+    def _next_page(self, event=None):
         """Switch to the next page.
         Add a new page if the current page is the last page."""
         self._save_current_page()
@@ -532,7 +612,7 @@ class FumenCanvasFrame(ttk.Frame):
             field = last_page.field.copy()
             field.apply_action(Action(
                 last_page.operation if last_page.operation
-                else Operation(Mino._, Rotation.REVERSE, 0, Consts.HEIHGT-1),
+                else Operation(Mino._, Rotation.REVERSE, 0, Consts.HEIGHT-1),
                 last_page.flags.rise,
                 last_page.flags.mirror,
                 None,
@@ -546,13 +626,49 @@ class FumenCanvasFrame(ttk.Frame):
             ))
         self._to_page(page)
 
-    def _page_up(self, event):
+    def _prev_page(self, event=None):
         """Switch to the previous page.
         Do nothing if the current page is the first page."""
         self._save_current_page()
         page = self._current_page - 1
         if page >= 0:
             self._to_page(page)
+
+    def _first_page(self, event=None):
+        self._save_current_page()
+        self._to_page(0)
+
+    def _last_page(self, event=None):
+        self._save_current_page()
+        self._to_page(len(self._pages)-1)
+
+    def _delete_page(self, event=None):
+        if len(self._pages) > 1:
+            del self._pages[self._current_page]
+            self._to_page(max(0, self._current_page-1))
+
+    def _copy_page(self, event=None):
+        self._save_current_page()
+        copied_page = self._pages[self._current_page]
+        self._pages.insert(self._current_page, Page(
+            field=copied_page.field.copy(),
+            flags=Flags(
+                lock=False,
+                mirror=False,
+                colorize=copied_page.flags.colorize,
+                rise=False,
+                quiz=copied_page.flags.quiz,
+            ),
+            comment=copied_page.comment
+        ))
+        self._to_page(self._current_page)
+
+    def _insert_page(self, event=None):
+        self._save_current_page()
+        self._pages.insert(self._current_page, Page(
+            field=Field(),
+        ))
+        self._to_page(self._current_page)
 
     def _on_shift_up(self, event):
         self._field_frame.shift_up()
@@ -574,6 +690,8 @@ class FumenCanvasFrame(ttk.Frame):
             / (Consts.WIDTH + (len(Rotation)+1) * _config.PICKER_SIZE_MULT))
         max_height = (event.height - 4) // (Consts.TOTAL_HEIGHT)
         mino_size = min(max_width, max_height)
+        _config.FONT.config(size=mino_size//2)
         self._field_frame.on_resize(mino_size)
         self._picker_frame.on_resize(
             floor(mino_size*_config.PICKER_SIZE_MULT))
+        self._control_frame.on_resize(mino_size)
