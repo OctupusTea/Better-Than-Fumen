@@ -565,7 +565,7 @@ class FumenCanvasFrame(ttk.Frame):
         Switch to the next or the previous mino if scrolling is enabled.
         """
         if _keys.PICKER_WHEEL_ENABLED:
-            if event.delta > 0 or event.num == 4:
+            if event.delta > 0 or event.num == 5:
                 delta = 1
             else:
                 delta = -1
@@ -579,7 +579,7 @@ class FumenCanvasFrame(ttk.Frame):
         Switch to the next or the previous rotation if scrolling is enabled.
         """
         if _keys.PICKER_WHEEL_ENABLED:
-            if event.delta > 0 or event.num == 4:
+            if event.delta > 0 or event.num == 5:
                 delta = 1
             else:
                 delta = -1
@@ -652,6 +652,8 @@ class FumenCanvasFrame(ttk.Frame):
         copied_page = self._pages[self._current_page]
         self._pages.insert(self._current_page, Page(
             field=copied_page.field.copy(),
+            operation=copied_page.operation.shifted(0, 0)
+                      if copied_page.operation else None,
             flags=Flags(
                 lock=False,
                 mirror=False,
@@ -667,6 +669,7 @@ class FumenCanvasFrame(ttk.Frame):
         self._save_current_page()
         self._pages.insert(self._current_page, Page(
             field=Field(),
+            flags=Flags(),
         ))
         self._to_page(self._current_page)
 
