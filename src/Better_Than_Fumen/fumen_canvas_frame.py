@@ -153,6 +153,10 @@ class _FieldCanvasFrame(_BaseMinoFrame):
                           self._on_draw)
         self._canvas.bind(f'<B{_keys.CANVAS_DRAW_BTN}-Motion>',
                           self._on_draw)
+        self._canvas.bind(f'<ButtonPress-{_keys.CANVAS_ERASE_BTN}>',
+                          self._on_erase)
+        self._canvas.bind(f'<B{_keys.CANVAS_ERASE_BTN}-Motion>',
+                          self._on_erase)
         self._canvas.bind(f'<ButtonRelease-{_keys.CANVAS_DRAW_BTN}>',
                           self._on_draw_reset)
 
@@ -194,6 +198,18 @@ class _FieldCanvasFrame(_BaseMinoFrame):
     def _on_draw_reset(self, event):
         """Reset the drawing mino when a drawing event ends."""
         self._drawing_mino = None
+
+    def _on_erase(self, event):
+        """Erase event handler. Erase mino (draw Mino._)."""
+        x, y = self._event_coords(event)
+        if self._is_inside_field(x, y):
+            if [x, y] in self._placements:
+                self._clear_placements()
+                _CanvasMode.placement = None
+            self._clear_ghosts()
+            self._field.fill(x, y, Mino._)
+            self._check_lineclear_repaint(x, y)
+            self._repaint_ghosts()
 
     def _paint_mino(self, x, y, mino, type_='normal'):
         """Retrieve the desired mino fill and outline for paint_mino_at()."""
@@ -558,6 +574,8 @@ class FumenCanvasFrame(ttk.Frame):
         self.bind(f'<{_keys.CANVAS_SHIFT_MOD}-Left>', self._on_shift_left)
         self.bind(f'<{_keys.CANVAS_SHIFT_MOD}-Right>', self._on_shift_right)
 
+        self.bind_all(f'<ButtonPress-{_keys.CANVAS_EXPORT_BTN}>', self._export)
+
         self.bind('<Configure>', self._on_resize)
 
     def _on_mino_scroll(self, event):
@@ -684,6 +702,10 @@ class FumenCanvasFrame(ttk.Frame):
 
     def _on_shift_right(self, event):
         self._field_frame.shift_right()
+
+    def _export(self, event):
+        self._save_current_page()
+        print(encode(self._pages))
 
     def _on_resize(self, event):
         """Calculate the maximum suitable mino size

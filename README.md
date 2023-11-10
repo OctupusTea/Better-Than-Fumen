@@ -10,6 +10,8 @@ A Python-based Fumen editor aims to enahnce usability and simplify Fumen sharing
 - Click and shift-click to draw mino/placement
 	- If the ONLY minos labelled with rotation symbols are selected, the shifting behaviour inverses
 	- If the empty (black) or the garbage (grey) is selected, only mino drawing is available regardless of shift
+- Right click to erase mino/placement
+- (Temporary) Middle click to export Fumen code
 - Shift-arrowkeys (up/down/left/right) to shift the whole field around
 - PageUp and PageDown to browse stored pages.
 - Buttons to copy or delete the current page, or insert a new page before the current page.

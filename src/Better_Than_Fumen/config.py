@@ -66,6 +66,8 @@ class KeyConfig:
     CANVAS_INVERT_MOD = 'Shift'
     CANVAS_SHIFT_MOD = 'Shift'
     CANVAS_DRAW_BTN = '1'
+    CANVAS_EXPORT_BTN = '2'
+    CANVAS_ERASE_BTN = '3'
     PICKER_SELECT_BTN = '1'
     PICKER_WHEEL_ENABLED = True
     PICKER_WHEEL_REVERSED = False
