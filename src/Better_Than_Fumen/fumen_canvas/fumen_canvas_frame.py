@@ -10,7 +10,7 @@ from py_fumen_py import *
 from py_fumen_py.action import Action
 from py_fumen_py.constant import FieldConstants as Consts
 
-from ..config import _keys
+from ..config import _keys, _global_config
 from ..config import _canvas_config as _config
 from ._base_mino_frame import _CanvasMode
 from ._field_canvas_frame import _FieldCanvasFrame
@@ -22,13 +22,13 @@ class FumenCanvasFrame(ttk.Frame):
     def __init__(self, parent):
         super().__init__(parent)
 
-        _config.FONT = font.nametofont(f'Tk{_config.FONT_STYLE}Font')
-        _config.FONT.config(size=_config.MINO_SIZE//2)
+        _global_config.FONT = font.nametofont(f'Tk{_global_config.FONT_STYLE}Font')
+        _global_config.FONT.config(size=_config.MINO_SIZE//2)
 
         self._field_frame = _FieldCanvasFrame(
             self, _config.MINO_SIZE, padding=2
         )
-        self._field_frame.grid(column=1, row=0, rowspan=2, sticky=(S,W))
+        self._field_frame.grid(column=1, row=0, rowspan=2, sticky=(E,W))
 
         self._picker_frame = _MinoPickerFrame(
             self, floor(_config.MINO_SIZE*_config.PICKER_SIZE_MULT), padding=2
@@ -39,11 +39,15 @@ class FumenCanvasFrame(ttk.Frame):
         self._control_frame = _ControlPanelFrame(
             self, _config.MINO_SIZE, padding=2
         )
-        self._control_frame.grid(column=0, row=0, sticky=(S,E))
-        self._control_frame.bind_page_flips(
+        self._control_frame.grid(column=0, row=0, sticky=(S))
+        self._control_frame.bind_commands(
             self._prev_page, self._next_page,
             self._first_page, self._last_page,
             self._delete_page, self._copy_page, self._insert_page,
+            self._on_shift_left, self._on_shift_down,
+            self._on_shift_up, self._on_shift_right,
+            self._on_shiftwarp_toggle,
+            self._on_mirror, self._on_clear,
         )
 
         self._pages = [Page(field=Field(), flags=Flags())]
@@ -187,17 +191,26 @@ class FumenCanvasFrame(ttk.Frame):
         ))
         self._to_page(self._current_page)
 
-    def _on_shift_up(self, event):
+    def _on_shift_up(self, event=None):
         self._field_frame.shift_up()
 
-    def _on_shift_down(self, event):
+    def _on_shift_down(self, event=None):
         self._field_frame.shift_down()
 
-    def _on_shift_left(self, event):
-        self._field_frame.shift_left()
+    def _on_shift_left(self, event=None):
+        self._field_frame.shift_left(warp=_CanvasMode.shiftwarp)
 
-    def _on_shift_right(self, event):
-        self._field_frame.shift_right()
+    def _on_shift_right(self, event=None):
+        self._field_frame.shift_right(warp=_CanvasMode.shiftwarp)
+
+    def _on_shiftwarp_toggle(self, event=None):
+        _CanvasMode.shiftwarp = not _CanvasMode.shiftwarp
+
+    def _on_mirror(self, event=None):
+        self._field_frame.mirror()
+
+    def _on_clear(self, event=None):
+        self._field_frame.clear()
 
     def _export(self, event):
         self._save_current_page()
@@ -211,7 +224,7 @@ class FumenCanvasFrame(ttk.Frame):
             / (Consts.WIDTH + (len(Rotation)+1) * _config.PICKER_SIZE_MULT))
         max_height = (event.height - 4) // (Consts.TOTAL_HEIGHT)
         mino_size = min(max_width, max_height)
-        _config.FONT.config(size=mino_size//2)
+        _global_config.FONT.config(size=mino_size//2)
         self._field_frame.on_resize(mino_size)
         self._picker_frame.on_resize(
             floor(mino_size*_config.PICKER_SIZE_MULT))

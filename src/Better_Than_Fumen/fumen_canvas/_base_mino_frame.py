@@ -8,7 +8,7 @@ import tkinter as tk
 
 from py_fumen_py import *
 
-from ..config import _keys
+from ..config import _keys, _global_config
 from ..config import _canvas_config as _config
 
 class _CanvasMode:
@@ -17,6 +17,7 @@ class _CanvasMode:
     rotation = Rotation.SPAWN
     direct_place = False
     placement = None
+    shiftwarp = False
 
 class _BaseMinoFrame(ttk.Frame):
     """ The base class of MinoCanvas and MinoPicker.
@@ -73,8 +74,8 @@ class _BaseMinoFrame(ttk.Frame):
             if self._texts[x][y] is None:
                 self._texts[x][y] = self._canvas.create_text(
                     (x+0.5)*self._mino_size, (y+0.5)*self._mino_size,
-                    fill=_config.TEXT_COLOR,
-                    font=_config.FONT,
+                    fill=_global_config.TEXT_COLOR,
+                    font=_global_config.FONT,
                 )
             self._canvas.itemconfigure(
                 self._texts[x][y],
@@ -95,10 +96,6 @@ class _BaseMinoFrame(ttk.Frame):
                     self._texts[x][y],
                     (x+0.5)*self._mino_size,
                     (y+0.5)*self._mino_size,
-                )
-                self._canvas.itemconfigure(
-                    self._texts[x][y],
-                    font=_config.FONT,
                 )
             if self._texts[x][y] and self._rects[x][y]:
                 self._canvas.tag_raise(self._texts[x][y], self._rects[x][y])

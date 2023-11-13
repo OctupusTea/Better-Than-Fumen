@@ -12,12 +12,11 @@ A Python-based Fumen editor aims to enahnce usability and simplify Fumen sharing
 	- If the empty (black) or the garbage (grey) is selected, only mino drawing is available regardless of shift
 - Right click to erase mino/placement
 - (Temporary) Middle click to export Fumen code
-- Shift-arrowkeys (up/down/left/right) to shift the whole field around
-- PageUp and PageDown to browse stored pages.
+- Buttons for page browsing and shift the whole field around
+	- Shift-arrowkeys (up/down/left/right) can also be used to shift the whole field around
+	- PageUp, PageDown, Home and End can also be used for browsing.
 - Buttons to copy or delete the current page, or insert a new page before the current page.
 
-> The current control methods of field-shifting (shift-arrowkeys) are an add-on to the common practice
-> 
 > I'll add more control methods similar to those in [Fumen for Mobile](https://knewjade.github.io/fumen-for-mobile/) or [Fumen Editor](fumen.zui.jp/)
 
 ## Dependencies

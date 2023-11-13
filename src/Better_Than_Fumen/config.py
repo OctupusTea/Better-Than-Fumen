@@ -6,13 +6,16 @@ from tkinter import font
 from py_fumen_py import Mino
 
 @dataclass
+class GlobalConfig:
+    FONT: font = None
+    FONT_STYLE: str = 'Fixed'
+    TEXT_COLOR = 'gray75'
+
+@dataclass
 class CanvasConfig:
     LINE_WIDTH: int = 2
     MINO_SIZE: int = 32
     PICKER_SIZE_MULT: float = 5/4
-    FONT: font = None
-    FONT_STYLE: str = 'Fixed'
-    TEXT_COLOR = 'gray75'
     FILL: dict = None
     HIGHLIGHT: dict = None
     GRAY_HIGHLIGHT: dict = None
@@ -78,6 +81,7 @@ class KeyConfig:
     FUMEN_LAST = 'End'
 
 _keys = KeyConfig()
+_global_config = GlobalConfig()
 _canvas_config = CanvasConfig()
 
 class ConfigParser:

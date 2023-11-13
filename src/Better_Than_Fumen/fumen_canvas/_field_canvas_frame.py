@@ -9,7 +9,7 @@ import tkinter as tk
 from py_fumen_py import *
 from py_fumen_py.constant import FieldConstants as Consts
 
-from ..config import _keys
+from ..config import _keys, _global_config
 from ..config import _canvas_config as _config
 from ._base_mino_frame import _CanvasMode, _BaseMinoFrame
 
@@ -152,16 +152,16 @@ class _FieldCanvasFrame(_BaseMinoFrame):
             )
         self._repaint_placements()
 
-    def _check_lineclear_repaint(self, x, y):
+    def _check_lineclear_repaint(self, x, y, force_repaint=False):
         """Check lineclear (and placements) at the given mino grid coords,
         and repaint accordingly.
         The garbage line(s) are not affected by lineclears.
         """
-        lineclear = all([px, y] in self._placements
-                        or self._field.at(px, y) is not Mino._
-                        for px in range(self._width))
         if y >= 0:
-            if lineclear != self._lineclear[y]:
+            lineclear = all([px, y] in self._placements
+                            or self._field.at(px, y) is not Mino._
+                            for px in range(self._width))
+            if force_repaint or lineclear != self._lineclear[y]:
                 self._lineclear[y] = lineclear
                 repaint_list = [[x, y] for x in range(self._width)]
             else:
@@ -186,7 +186,7 @@ class _FieldCanvasFrame(_BaseMinoFrame):
         for y in range(-Consts.GARBAGE_HEIGHT, Consts.HEIGHT):
             for x in range(self._width):
                 self._paint_mino(x, y, self._field.at(x, y), 'normal')
-            self._check_lineclear_repaint(0, y)
+            self._check_lineclear_repaint(0, y, True)
         self._repaint_placements()
 
     def _clear_ghosts(self):
@@ -255,6 +255,16 @@ class _FieldCanvasFrame(_BaseMinoFrame):
     def shift_right(self, amount=1, warp=False):
         self._field.shift_right(amount, warp)
         self._shift_placement_repaint(amount, 0)
+
+    def mirror(self):
+        if _CanvasMode.placement:
+            _CanvasMode.placement.mirror()
+        self._field.mirror(mirror_color=True)
+        self.repaint()
+
+    def clear(self):
+        self._field = Field()
+        self.repaint()
 
     def field(self):
         return self._field.copy()
