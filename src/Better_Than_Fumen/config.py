@@ -76,3 +76,12 @@ class KeyConfig:
     FUMEN_PAGEUP = 'Prior'
     FUMEN_FIRST = 'Home'
     FUMEN_LAST = 'End'
+
+_keys = KeyConfig()
+_canvas_config = CanvasConfig()
+
+class ConfigParser:
+    @staticmethod
+    def parse_config():
+        global _keys
+        global _canvas_config
