@@ -264,6 +264,7 @@ class _FieldCanvasFrame(_BaseMinoFrame):
 
     def clear(self):
         self._field = Field()
+        _CanvasMode.placement = None
         self.repaint()
 
     def field(self):

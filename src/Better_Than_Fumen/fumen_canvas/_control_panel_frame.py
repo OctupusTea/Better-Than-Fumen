@@ -20,7 +20,7 @@ class _ControlPanelFrame(ttk.Frame):
 
         self._insert_button = Button(
             self, text='Insert', font=_global_config.FONT,
-            borderwidth=_config.LINE_WIDTH,
+            padx=5, pady=2, borderwidth=_config.LINE_WIDTH,
         )
         self._insert_button.grid(
             column=0, row=0, columnspan=4, sticky=(N,S,E,W)
@@ -28,7 +28,7 @@ class _ControlPanelFrame(ttk.Frame):
 
         self._copy_button = Button(
             self, text='Copy', font=_global_config.FONT,
-            borderwidth=_config.LINE_WIDTH,
+            padx=5, pady=2, borderwidth=_config.LINE_WIDTH,
         )
         self._copy_button.grid(
             column=0, row=1, columnspan=4, sticky=(N,S,E,W)
@@ -36,7 +36,7 @@ class _ControlPanelFrame(ttk.Frame):
 
         self._delete_button = Button(
             self, text='Delete', font=_global_config.FONT,
-            borderwidth=_config.LINE_WIDTH,
+            padx=5, pady=2, borderwidth=_config.LINE_WIDTH,
         )
         self._delete_button.grid(
             column=0, row=2, columnspan=4, sticky=(N,S,E,W)
@@ -44,25 +44,25 @@ class _ControlPanelFrame(ttk.Frame):
 
         self._first_button = Button(
             self, text='|<', font=_global_config.FONT,
-            borderwidth=_config.LINE_WIDTH,
+            padx=5, pady=2, borderwidth=_config.LINE_WIDTH,
         )
         self._first_button.grid(column=0, row=3, sticky=(N,S,E,W))
 
         self._prev_button = Button(
             self, text='<<', font=_global_config.FONT,
-            borderwidth=_config.LINE_WIDTH,
+            padx=5, pady=2, borderwidth=_config.LINE_WIDTH,
         )
         self._prev_button.grid(column=1, row=3, sticky=(N,S,E,W))
 
         self._next_button = Button(
             self, text='>>', font=_global_config.FONT,
-            borderwidth=_config.LINE_WIDTH,
+            padx=5, pady=2, borderwidth=_config.LINE_WIDTH,
         )
         self._next_button.grid(column=2, row=3, sticky=(N,S,E,W))
 
         self._last_button = Button(
             self, text='>|', font=_global_config.FONT,
-            borderwidth=_config.LINE_WIDTH,
+            padx=5, pady=2, borderwidth=_config.LINE_WIDTH,
         )
         self._last_button.grid(column=3, row=3, sticky=(N,S,E,W))
 
@@ -78,45 +78,46 @@ class _ControlPanelFrame(ttk.Frame):
 
         self._shift_left_button = Button(
             self, text='<', font=_global_config.FONT,
-            borderwidth=_config.LINE_WIDTH,
+            padx=5, pady=2, borderwidth=_config.LINE_WIDTH,
         )
         self._shift_left_button.grid(column=0, row=6, sticky=(N,S,E,W))
 
         self._shift_down_button = Button(
-            self, text='^', font=_global_config.FONT,
-            borderwidth=_config.LINE_WIDTH, width=2,
+            self, text='v', font=_global_config.FONT,
+            padx=5, pady=2, borderwidth=_config.LINE_WIDTH, width=2,
         )
         self._shift_down_button.grid(column=1, row=6, sticky=(N,S,E,W))
 
         self._shift_up_button = Button(
-            self, text='v', font=_global_config.FONT,
-            borderwidth=_config.LINE_WIDTH, width=2,
+            self, text='^', font=_global_config.FONT,
+            padx=5, pady=2, borderwidth=_config.LINE_WIDTH, width=2,
         )
         self._shift_up_button.grid(column=2, row=6, sticky=(N,S,E,W))
 
         self._shift_right_button = Button(
             self, text='>', font=_global_config.FONT,
-            borderwidth=_config.LINE_WIDTH, width=2,
+            padx=5, pady=2, borderwidth=_config.LINE_WIDTH, width=2,
         )
         self._shift_right_button.grid(column=3, row=6, sticky=(N,S,E,W))
 
         self._shiftwarp_check = tk.Checkbutton(
             self, text='Shift warp', font=_global_config.FONT,
             borderwidth=_config.LINE_WIDTH, selectcolor='grey50',
+            padx=5, pady=2,
         )
         self._shiftwarp_check.grid(column=0, row=7, columnspan=4,
                                    sticky=(N,S,E,W))
 
         self._mirror_button = Button(
             self, text='Mirror', font=_global_config.FONT,
-            borderwidth=_config.LINE_WIDTH,
+            padx=5, pady=2, borderwidth=_config.LINE_WIDTH,
         )
         self._mirror_button.grid(column=0, row=8, columnspan=2,
                                  sticky=(N,S,E,W))
 
         self._clear_button = Button(
             self, text='Clear', font=_global_config.FONT,
-            borderwidth=_config.LINE_WIDTH,
+            padx=5, pady=2, borderwidth=_config.LINE_WIDTH,
         )
         self._clear_button.grid(column=2, row=8, columnspan=2,
                                  sticky=(N,S,E,W))
